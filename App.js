@@ -16,7 +16,6 @@ import {
     useColorScheme,
     View
 } from 'react-native';
-import DocumentPicker, {isInProgress,} from 'react-native-document-picker'
 import React, {useEffect, useRef, useState} from 'react';
 import {DarkTheme, DefaultTheme, NavigationContainer} from '@react-navigation/native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
@@ -33,6 +32,7 @@ const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 export default function App() {
+    console.log('function App()!');
     const scheme = useColorScheme();
     return (
         <NavigationContainer theme={scheme === 'dark' ? DarkTheme : DefaultTheme}>
@@ -57,23 +57,7 @@ export default function App() {
 }
 
 function PostForm({route, navigation}) {
-    const [result, setResult] = React.useState()
-
-    useEffect(() => {
-        console.log(JSON.stringify(result, null, 2))
-    }, [result])
-
-    const handleError = (err) => {
-        if (DocumentPicker.isCancel(err)) {
-            console.warn('cancelled')
-            // User cancelled the picker, exit any dialogs or menus and move on
-        } else if (isInProgress(err)) {
-            console.warn('multiple pickers were opened, only the last will be considered')
-        } else {
-            throw err
-        }
-    }
-
+    console.log('PostForm');
     return (
         <SafeAreaView>
             <View
@@ -129,7 +113,7 @@ function PostForm({route, navigation}) {
                     style={{color: '#fff'}}
                     title="Add Files"
                     onPress={() => {
-                        DocumentPicker.pickMultiple().then(setResult).catch(handleError)
+                        Alert.alert('Soon...');
                     }}
                 />
             </View>
@@ -138,6 +122,7 @@ function PostForm({route, navigation}) {
 }
 
 function Home({navigation}) {
+    console.log('Home');
     return (
         <Tab.Navigator
             initialRouteName="List"
@@ -197,11 +182,14 @@ function SettingsScreen() {
 }
 
 function BoardsScreen({navigation}) {
+    console.log('BoardsScreen');
     const [apiResponse, setApiResponse] = useState([]);
 
     useEffect(() => {
+        console.log('BoardsScreen: useEffect');
         let ss = [];
         getBoarsFromApi().then((res) => {
+            console.log('BoardsScreen: useEffect: getBoarsFromApi');
             for (const [key, boards] of Object.entries(res)) {
                 let b = [];
                 for (const [board, title] of Object.entries(boards)) {
@@ -213,7 +201,7 @@ function BoardsScreen({navigation}) {
             // navigation.setOptions({tabBarBadge: ss.length})
         });
     }, [])
-
+    console.log('BoardsScreen: useEffect: getBoarsFromApi -> return');
     return (
         <View style={styles.container}>
             <SectionList
@@ -236,10 +224,12 @@ function BoardsScreen({navigation}) {
 }
 
 function BoardScreen({route, navigation}) {
+    console.log('BoardScreen');
     let board;
     if (typeof route.params === 'object' && 'board' in route.params) {
         board = route.params.board;
     } else {
+        console.log('BoardScreen: else');
         return (
             <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
                 <Text style={{color: '#848484'}}>Please, select board first!</Text>
