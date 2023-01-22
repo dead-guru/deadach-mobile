@@ -1,4 +1,5 @@
 import 'react-native-gesture-handler';
+import {enableScreens} from 'react-native-screens';
 import {
     ActivityIndicator,
     Alert,
@@ -29,11 +30,11 @@ import ImageView from 'react-native-image-viewing'
 
 import styles from './styles';
 
+enableScreens();
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 export default function App() {
-    console.log('function App()!');
     const scheme = useColorScheme();
     return (
         <NavigationContainer theme={scheme === 'dark' ? DarkTheme : DefaultTheme}>
@@ -48,7 +49,7 @@ export default function App() {
                             //navigation.navigate('Form')
                         }}>
                             <View style={{paddingRight: 10}}>
-                                <Ionicons name='create' size='24' color='#FF7920' />
+                                <Ionicons name='create' size={24} color='#FF7920' />
                             </View>
                         </TouchableHighlight>),
                 }} />
@@ -58,7 +59,6 @@ export default function App() {
 }
 
 function PostForm({route, navigation}) {
-    console.log('PostForm');
     return (
         <SafeAreaView>
             <View
@@ -123,7 +123,6 @@ function PostForm({route, navigation}) {
 }
 
 function Home({navigation}) {
-    console.log('Home');
     return (
         <Tab.Navigator
             initialRouteName="List"
@@ -134,7 +133,7 @@ function Home({navigation}) {
                             navigation.navigate('Form')
                         }}>
                             <View style={{paddingRight: 10}}>
-                                <Ionicons name='create' size='24' color='#FF7920' />
+                                <Ionicons name='create' size={24} color='#FF7920' />
                             </View>
                         </TouchableHighlight> : null
                 ),
@@ -183,14 +182,11 @@ function SettingsScreen() {
 }
 
 function BoardsScreen({navigation}) {
-    console.log('BoardsScreen');
     const [apiResponse, setApiResponse] = useState([]);
 
     useEffect(() => {
-        console.log('BoardsScreen: useEffect');
         let ss = [];
         getBoarsFromApi().then((res) => {
-            console.log('BoardsScreen: useEffect: getBoarsFromApi');
             for (const [key, boards] of Object.entries(res)) {
                 let b = [];
                 for (const [board, title] of Object.entries(boards)) {
@@ -202,7 +198,6 @@ function BoardsScreen({navigation}) {
             // navigation.setOptions({tabBarBadge: ss.length})
         });
     }, [])
-    console.log('BoardsScreen: useEffect: getBoarsFromApi -> return');
     return (
         <View style={styles.container}>
             <SectionList
@@ -225,12 +220,10 @@ function BoardsScreen({navigation}) {
 }
 
 function BoardScreen({route, navigation}) {
-    console.log('BoardScreen');
     let board;
     if (typeof route.params === 'object' && 'board' in route.params) {
         board = route.params.board;
     } else {
-        console.log('BoardScreen: else');
         return (
             <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
                 <Text style={{color: '#848484'}}>Please, select board first!</Text>
@@ -242,7 +235,6 @@ function BoardScreen({route, navigation}) {
     const [refreshing, setRefreshing] = useState(false);
 
     const getData = () => {
-        console.log('getData')
         getBoardThreadsWithBody(board).then((res) => {
             setApiResponse(res);
             setRefreshing(false);
@@ -256,7 +248,7 @@ function BoardScreen({route, navigation}) {
     }
 
     useEffect(() => {
-        getData()
+        getData();
     }, [board, refreshing]);
 
     return (
@@ -331,7 +323,6 @@ function ThreadScreen({route, navigation}) {
     };
 
     const getData = () => {
-        console.log('get data2');
         getBoardThreadFromApi(board, thread).then((res) => {
             for (const post in res) {
                 let images = [];
@@ -494,13 +485,11 @@ const processFiles = (board, item, clickable, onSelect) => {
                 continue;
             }
 
-            console.log('file')
-
             image.push(<TouchableOpacity
                 key={files[file].filename}
                 onPress={() => handleLinkPress('https://4.dead.guru/' + board + '/src/' + files[file].filename + files[file].extension)}
             ><View style={styles.threadFile}>
-                <Ionicons name='cloud-download-outline' size='18' color='#FFF' />
+                <Ionicons name='cloud-download-outline' size={24} color='#FFF' />
                 <Text style={{fontSize: 16, color: '#c1c1c1'}}> {files[file].filename}{files[file].extension}</Text>
             </View></TouchableOpacity>)
         }
