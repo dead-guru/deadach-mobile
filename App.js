@@ -41,17 +41,15 @@ export default function App() {
             <Stack.Navigator
                 initialRouteName="Home"
             >
-                <Stack.Screen name="Home" component={Home} options={{headerShown: false}} />
-                <Stack.Screen name="Form" component={PostForm} options={{headerShown: false}} />
+                <Stack.Screen name="Home" animationTypeForReplace="pop" headerBackTitle="Back" component={Home} options={{headerShown: false}} />
+                <Stack.Screen name="Form" animationTypeForReplace="pop" headerBackTitle="Back" component={PostForm}
+                              options={{
+                                  headerBackTitle: "Back",
+                              }}
+                />
                 <Stack.Screen name="Thread" component={ThreadScreen} options={{
-                    headerShown: true, headerRight: () => (
-                        <TouchableHighlight onPress={() => {
-                            //navigation.navigate('Form')
-                        }}>
-                            <View style={{paddingRight: 10}}>
-                                <Ionicons name='create' size={24} color='#FF7920' />
-                            </View>
-                        </TouchableHighlight>),
+                    headerBackTitle: "Back",
+                    headerShown: true
                 }} />
             </Stack.Navigator>
         </NavigationContainer>
@@ -59,25 +57,22 @@ export default function App() {
 }
 
 function PostForm({route, navigation}) {
+
+    const {board, thread} = route.params;
+
+    let title = 'New Post for /' + board + '/';
+
+    if (thread !== null) {
+        title = 'New Comment for /' + board + '/ #' + thread;
+    }
+
+    navigation.setOptions({
+        title: title
+    });
+
     return (
-        <SafeAreaView>
-            <View
-                style={{
-                    backgroundColor: '#fff',
-                    borderBottomColor: '#000000',
-                    borderBottomWidth: 1,
-                    marginBottom: 15,
-                }}>
-                <TextInput
-                    editable
-                    multiline
-                    numberOfLines={4}
-                    maxLength={40}
-                    onChangeText={text => console.log(text)}
-                    placeholder={"Name"}
-                    style={{padding: 10}}
-                /></View>
-            <View
+        <SafeAreaView style={{marginHorizontal: 30}}>
+            {thread === null ? <View
                 style={{
                     backgroundColor: '#fff',
                     borderBottomColor: '#000000',
@@ -92,7 +87,16 @@ function PostForm({route, navigation}) {
                     onChangeText={text => console.log(text)}
                     placeholder={"Subject"}
                     style={{padding: 10}}
-                /></View>
+                /></View> : null}
+            <View style={{backgroundColor: '#333333'}}>
+                <Button
+                    style={{color: '#fff'}}
+                    title="Add Files"
+                    onPress={() => {
+                        Alert.alert('Soon...');
+                    }}
+                />
+            </View>
             <View
                 style={{
                     backgroundColor: '#fff',
@@ -109,10 +113,10 @@ function PostForm({route, navigation}) {
                     placeholder={"Post"}
                     style={{padding: 10, height: 300}}
                 /></View>
-            <View style={{backgroundColor: '#333333'}}>
+            <View style={{backgroundColor: '#1c2814'}}>
                 <Button
                     style={{color: '#fff'}}
-                    title="Add Files"
+                    title="Create"
                     onPress={() => {
                         Alert.alert('Soon...');
                     }}
@@ -240,6 +244,15 @@ function BoardScreen({route, navigation}) {
             setRefreshing(false);
             navigation.setOptions({
                 title: 'Board \\' + board + '\\',
+                headerRight: () => {
+                    return <TouchableHighlight onPress={() => {
+                        navigation.navigate('Form', {board: board, thread: null})
+                    }}>
+                        <View style={{paddingRight: 10}}>
+                            <Ionicons name='create' size={24} color='#FF7920' />
+                        </View>
+                    </TouchableHighlight>
+                }
             });
         }).catch(error => {
             console.error(error);
@@ -345,6 +358,18 @@ function ThreadScreen({route, navigation}) {
                 }
                 res[post].images = images;
             }
+            navigation.setOptions({
+                title: '/' + board + '/ #' + thread,
+                headerRight: () => {
+                    return <TouchableHighlight onPress={() => {
+                        navigation.navigate('Form', {board: board, thread: thread})
+                    }}>
+                        <View style={{paddingRight: 10}}>
+                            <Ionicons name='create' size={24} color='#FF7920' />
+                        </View>
+                    </TouchableHighlight>
+                }
+            })
 
             setApiResponse(res);
             setRefreshing(false);
