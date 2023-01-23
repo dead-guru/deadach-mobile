@@ -6,5 +6,6 @@
 * [x] Captcha
 * [ ] Host as env
 * [ ] Separate code by components files
+* [ ] "Post too long click to expand"
 * [ ] Auto reload captcha by lifetime from response and clean state of input
 * [ ] fix Warning: Each child in a list should have a unique "key" prop. In thread screen
