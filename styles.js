@@ -33,6 +33,7 @@ const styles = StyleSheet.create({
     threadCom: {
         color: '#fff',
         padding: 10,
+        paddingBottom: 20,
         fontSize: 14,
     },
     threadImagesCount: {

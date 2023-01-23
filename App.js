@@ -8,6 +8,7 @@ import {
     Image,
     KeyboardAvoidingView,
     Linking,
+    Platform,
     RefreshControl,
     SafeAreaView,
     ScrollView,
@@ -23,6 +24,7 @@ import {
 import React, {useEffect, useRef, useState} from 'react';
 import {DarkTheme, DefaultTheme, NavigationContainer} from '@react-navigation/native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {useHeaderHeight} from '@react-navigation/elements'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import {createStackNavigator} from '@react-navigation/stack';
@@ -98,7 +100,7 @@ function PostForm({route, navigation}) {
         body: '',
         files: [],
         captchaText: '',
-        captchaCookie
+        captchaCookie: ''
     });
 
     let title = 'Post for /' + board + '/';
@@ -153,7 +155,7 @@ function PostForm({route, navigation}) {
             let res = await postViaApi(post)
 
             if ('error' in res) {
-                Alert.alert('Api Error!', res.error)
+                Alert.alert('Api Error!', res.error.replace(/<[^>]+>/g, ' '))
                 setIsDisabledPost(false);
                 return;
             }
@@ -239,12 +241,13 @@ function PostForm({route, navigation}) {
     const generateCaptcha = () => {
         getCaptcha().then(
             (resp) => {
-                console.log(resp.cookie);
                 setCaptchaCookie(resp.cookie)
                 setCaptchaImage('data:image/png;base64,' + resp.image)
             }
         )
     }
+
+    const height = useHeaderHeight()
 
     return (
         <SafeAreaView style={{
@@ -255,7 +258,10 @@ function PostForm({route, navigation}) {
                 flex: 1,
                 flexDirection: 'column',
                 justifyContent: 'center',
-            }} behavior="padding" enabled keyboardVerticalOffset={100}>
+            }} behavior={Platform.select({
+                android: undefined,
+                ios: 'padding'
+            })} enabled keyboardVerticalOffset={height + 47}>
                 <ScrollView style={{width: "100%"}}>
                     {thread === null ? <View
                         style={{
@@ -266,7 +272,6 @@ function PostForm({route, navigation}) {
                             marginTop: 10
                         }}>
                         <TextInput
-                            autoFocus={true}
                             clearButtonMode={'while-editing'}
                             editable
                             numberOfLines={1}
@@ -294,6 +299,7 @@ function PostForm({route, navigation}) {
                             marginBottom: 15,
                         }}>
                         <TextInput
+                            autoFocus={thread !== null}
                             editable
                             multiline
                             numberOfLines={10}
@@ -615,6 +621,7 @@ function ThreadScreen({route, navigation}) {
     };
 
     const getData = () => {
+        // setRefreshing(true);
         getBoardThreadFromApi(board, thread).then((res) => {
             for (const post in res) {
                 let images = [];
@@ -651,9 +658,10 @@ function ThreadScreen({route, navigation}) {
             })
 
             setApiResponse(res);
-            setRefreshing(false);
         }).catch(error => {
             console.error(error);
+        }).finally(() => {
+            setRefreshing(false);
         });
     };
     useEffect(() => {
@@ -678,6 +686,26 @@ function ThreadScreen({route, navigation}) {
                     <RefreshControl refreshing={refreshing} onRefresh={getData} />
                 }
                 keyExtractor={(item, index) => index.toString()}
+                ListFooterComponent={
+                    <View>
+                        <TouchableHighlight onPress={() => {
+                            setRefreshing(true);
+                            getData();
+                        }}>
+                            <View style={{height: 160, justifyContent: 'center', alignItems: 'center'}}>
+                                <Text style={{color: '#848484'}}>This is the end...</Text>
+                                <View style={{
+                                    flexDirection: 'row',
+                                    flexWrap: 'wrap',
+                                    alignSelf: 'center', marginTop: 10, justifyContent: 'center', alignItems: 'center'
+                                }}>
+                                    <Ionicons name='refresh' size={18} color='#53738e' />
+                                    <Text style={{color: '#53738e'}}> Check updates</Text>
+                                </View>
+                            </View></TouchableHighlight>
+                        {refreshing ? <ActivityIndicator /> : null}
+                    </View>
+                }
                 renderItem={({item, index}) =>
                     <View style={{
                         flexDirection: 'column',
@@ -692,11 +720,12 @@ function ThreadScreen({route, navigation}) {
 
                         {processFiles(board, item, true, onSelect)}
                         {processEmbed(board, item, true)}
-                        {'com' in item ? <View style={{maxHeight: 400}}>
-                            <Hyperlink linkStyle={{color: '#ff7920'}} onPress={(url, text) => handleLinkPress(url)}>
-                                <Text style={[styles.threadCom]}>{formatCom(item.com, flatlistRef, index)}</Text>
-                            </Hyperlink>
-                        </View> : null}
+                        {'com' in item ?
+                            <View style={{maxHeight: 9000}}>
+                                <Hyperlink linkStyle={{color: '#ff7920'}} onPress={(url, text) => handleLinkPress(url)}>
+                                    <Text style={[styles.threadCom]}>{formatCom(item.com, flatlistRef, index)}</Text>
+                                </Hyperlink>
+                            </View> : null}
                         <View
                             style={{
                                 width: '100%',
@@ -836,7 +865,7 @@ const HASHTAG_FORMATTER = (string, listRef, index) => {
                 key={v}
                 onPress={() => typeof listRef !== 'undefined' ? listRef.current.scrollToIndex({
                     animated: true,
-                    index: index - 1,
+                    index: index - 1, //TODO: NOT FUCKING INDEX! Try to find index by key
                     viewOffset: 20,
                 }) : console.log(listRef)}
             ><Text key={i} style={{color: '#ff7920', fontWeight: 'bold'}}>{v.replace(' ', '')}</Text></TouchableOpacity>
@@ -847,7 +876,7 @@ const HASHTAG_FORMATTER = (string, listRef, index) => {
 };
 
 const formatCom = (com, listRef, index) => {
-    return HASHTAG_FORMATTER(he.decode(com.replace('<br/>', "\n").replace(/<[^>]+>/g, ' ')), listRef, index);
+    return HASHTAG_FORMATTER(he.decode(com.replaceAll('<br/>', "\n").replace(/<[^>]+>/g, ' ')), listRef, index);
 }
 
 const getBoarsFromApi = () => {
@@ -878,7 +907,6 @@ const getBoardThreadsWithBody = (board, page) => {
     }
 
     let uri = 'https://4.dead.guru/' + board + '/threads.json' + '?random_number=' + new Date().getTime();
-    console.log('getBoardThreadsWithBody: board:' + board + ' page: ' + page);
 
     return new Promise((resolve, reject) => {
         fetch(uri)
@@ -934,7 +962,6 @@ const postViaApi = async (post) => {
                     }
                     key = 'file' + (fi > 1 ? fi : '');
                     formData.append(key, val);
-                    console.log(val);
                     fi++;
                 }
             } else if (key === 'captchaText') {
@@ -953,8 +980,6 @@ const postViaApi = async (post) => {
         body: formData
     };
 
-    console.log(requestOptions);
-
     return await fetch(
         'https://4.dead.guru/post/', requestOptions)
         .then(async response => {
@@ -962,7 +987,7 @@ const postViaApi = async (post) => {
             try {
                 return JSON.parse(resp)
             } catch (e) { //TODO: handle errors
-                Alert.alert('Application error!', e.toString())
+                Alert.alert('Application error!', e.toString().replace(/<[^>]+>/g, ' '))
             }
         }).catch(error => {
             console.error(error);
