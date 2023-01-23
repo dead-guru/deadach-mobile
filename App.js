@@ -415,8 +415,6 @@ function Home({navigation}) {
                         iconName = focused ? 'ios-list' : 'ios-list-outline';
                     } else if (route.name === 'Board') {
                         iconName = focused ? 'document-text' : 'document-text-outline';
-                    } else if (route.name === 'Settings') {
-                        iconName = focused ? 'settings' : 'settings-outline';
                     }
 
                     // You can return any component that you like here!
@@ -435,20 +433,7 @@ function Home({navigation}) {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 },
             })} />
-            {/*<Tab.Screen name="Settings" component={SettingsScreen} listeners={() => ({
-                tabPress: () => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                },
-            })} />*/}
         </Tab.Navigator>
-    );
-}
-
-function SettingsScreen() {
-    return (
-        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-            <Text>Settings!</Text>
-        </View>
     );
 }
 
