@@ -21,7 +21,7 @@ import {
     View
 } from 'react-native';
 import * as Linking from 'expo-linking';
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {DarkTheme, DefaultTheme, NavigationContainer} from '@react-navigation/native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {useHeaderHeight} from '@react-navigation/elements'
@@ -39,6 +39,8 @@ import * as VideoThumbnails from 'expo-video-thumbnails';
 import * as mime from 'mime';
 
 import styles from './styles';
+
+import {getBoardThreadFromApi, getBoardThreadsWithBody, getBoarsFromApi, postViaApi} from './providers/deadach';
 
 enableScreens();
 const Stack = createStackNavigator();
@@ -445,7 +447,7 @@ function Home({navigation}) {
 function BoardsScreen({navigation}) {
     const [apiResponse, setApiResponse] = useState([]);
 
-    useEffect(() => {
+    useMemo(() => {
         let ss = [];
         getBoarsFromApi().then((res) => {
             for (const [key, boards] of Object.entries(res)) {
@@ -456,9 +458,9 @@ function BoardsScreen({navigation}) {
                 ss.push({title: key, data: b});
             }
             setApiResponse(ss);
-            // navigation.setOptions({tabBarBadge: ss.length})
         });
     }, [])
+
     return (
         <View style={styles.container}>
             <SectionList
@@ -525,7 +527,7 @@ function BoardScreen({route, navigation}) {
         return true;
     }
 
-    useEffect(() => {
+    useMemo(() => {
         getData(0, board);
     }, [board, rf]);
 
@@ -536,6 +538,7 @@ function BoardScreen({route, navigation}) {
             <FlatList
                 contentContainerStyle={{paddingBottom: 100}}
                 style={{width: '100%'}}
+                initialNumToRender={7}
                 showsVerticalScrollIndicator={false}
                 data={apiResponse}
                 onMomentumScrollBegin={() => {
@@ -666,6 +669,12 @@ function ThreadScreen({route, navigation}) {
     useEffect(() => {
         getData();
     }, [board, thread, refreshing, rf]);
+
+    useEffect(() => {
+        typeof flatlistRef !== 'undefined' ? flatlistRef.current.scrollToEnd({
+            animated: true,
+        }) : console.log(flatlistRef)
+    }, [rf])
 
     return (
         <View style={styles.container}>
@@ -874,7 +883,7 @@ const HASHTAG_FORMATTER = (string, listRef, index) => {
                 }) : console.log(listRef)}
             ><Text style={{color: '#ff7920', fontWeight: 'bold'}}>{v.replace(' ', '')}</Text></TouchableOpacity>
         } else {
-            return <Text key={'post_text_' + index}>{v}</Text>
+            return <Text>{v}</Text>
         }
     })
 };
@@ -882,119 +891,4 @@ const HASHTAG_FORMATTER = (string, listRef, index) => {
 const formatCom = (com, listRef, index) => {
     // return com.replaceAll('<br/>', "\n")
     return HASHTAG_FORMATTER(he.decode(com.replaceAll('<br/>', "\n").replace(/<[^>]+>/g, ' ')), listRef, index);
-}
-
-const getBoarsFromApi = () => {
-    return fetch('https://4.dead.guru/boards.php')
-        .then(response => response.json())
-        .then(json => {
-            return json;
-        })
-        .catch(error => {
-            console.error(error);
-        });
-};
-
-const getBoardThreadsFromApi = (board) => {
-    return fetch('https://4.dead.guru/' + board + '/threads.json' + '?random_number=' + new Date().getTime())
-        .then(response => response.json())
-        .then(json => {
-            return json[0]['threads'];
-        })
-        .catch(error => {
-            console.error(error);
-        });
-}
-
-const getBoardThreadsWithBody = (board, page) => {
-    if (typeof page === 'undefined' || page === null) {
-        page = '0'
-    }
-
-    let uri = 'https://4.dead.guru/' + board + '/threads.json' + '?random_number=' + new Date().getTime();
-
-    return new Promise((resolve, reject) => {
-        fetch(uri)
-            .then(response => response.json())
-            .then(async json => {
-                let threads = [];
-                if (typeof json[page] === 'undefined') {
-                    resolve([]); //TODO: Must STOP
-                }
-                for (const thread of json[page]['threads']) {
-                    await getBoardThreadFromApi(board, thread.no).then((th) => {
-                        threads.push(th[0]);
-                    }).catch(error => {
-                        console.error(error);
-                    });
-                }
-                resolve(threads);
-            })
-            .catch(error => {
-                reject(error);
-            });
-    });
-}
-
-const getBoardThreadFromApi = (board, thread) => {
-    return fetch('https://4.dead.guru/' + board + '/res/' + thread + '.json' + '?random_number=' + new Date().getTime())
-        .then(response => response.json())
-        .then(json => {
-            return json['posts'];
-        })
-        .catch(error => {
-            console.error(error);
-        });
-}
-
-const postViaApi = async (post) => {
-    let formData = new FormData();
-    formData.append('api', 'GCOnnUXiyNg18isqP8xqiRTPB7kYrsBReN_rXgA')
-    formData.append('json_response', '1')
-    formData.append('post', 'Створити')
-
-    let fi = 1;
-
-    Object.keys(post).forEach(function (key, index) {
-        if (post[key] !== null && !(Array.isArray(post[key]) && post[key].length === 0)) {
-            let val;
-            if (key === 'files') {
-                for (const file in post.files) {
-                    val = {
-                        uri: post.files[file].uri,
-                        name: post.files[file].filename,
-                        type: post.files[file].mime
-                    }
-                    key = 'file' + (fi > 1 ? fi : '');
-                    formData.append(key, val);
-                    fi++;
-                }
-            } else if (key === 'captchaText') {
-                formData.append('captcha_text', post[key]);
-            } else if (key === 'captchaCookie') {
-                formData.append('captcha_cookie', post[key]);
-            } else {
-                formData.append(key, post[key]);
-            }
-        }
-    });
-
-    const requestOptions = {
-        method: 'POST',
-        headers: {'Content-Type': 'multipart/form-data', 'Accept': '*/*'},
-        body: formData
-    };
-
-    return await fetch(
-        'https://4.dead.guru/post/', requestOptions)
-        .then(async response => {
-            let resp = await response.text();
-            try {
-                return JSON.parse(resp)
-            } catch (e) { //TODO: handle errors
-                Alert.alert('Application error!', e.toString().replace(/<[^>]+>/g, ' '))
-            }
-        }).catch(error => {
-            console.error(error);
-        });
 }
