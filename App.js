@@ -506,7 +506,6 @@ function BoardScreen({route, navigation}) {
     const [apiResponse, setApiResponse] = useState([]);
 
     const getData = (page, board) => {
-        console.log('getData!!!');
         setP(page)
         setRefreshing(true);
         let oldApiResponse = apiResponse;
@@ -622,11 +621,15 @@ function ThreadScreen({route, navigation}) {
         handleLinkPress(image.uri);
     };
 
+    const [indexMap, setIndexMap] = useState([]); //using for smth like scrollTo(<postId>) looks like shit
+
     const getData = () => {
         // setRefreshing(true);
         getBoardThreadFromApi(board, thread).then((res) => {
+            setIndexMap([])
             for (const post in res) {
                 let images = [];
+                indexMap.push(res[post].no);
                 if ('tim' in res[post] && !['.webm', '.mp4'].includes(res[post].ext)) {
                     images.push({
                         name: res[post].filename,
@@ -658,7 +661,7 @@ function ThreadScreen({route, navigation}) {
                     </TouchableHighlight>
                 }
             })
-
+            setIndexMap(indexMap)
             setApiResponse(res);
         }).catch(error => {
             console.error(error);
@@ -728,7 +731,7 @@ function ThreadScreen({route, navigation}) {
 
                         {processFiles(board, item, true, onSelect)}
                         {processEmbed(board, item, true)}
-                        {'com' in item ? processCom(item.com, flatlistRef, index) : null}
+                        {'com' in item ? processCom(item.com, flatlistRef, indexMap) : null}
                         <View
                             style={{
                                 width: '100%',
@@ -743,14 +746,14 @@ function ThreadScreen({route, navigation}) {
     );
 }
 
-const processCom = (com, flatListRef, index) => {
+const processCom = (com, flatListRef, indexMap) => {
     if (com.length > 500) {
         //TODO: Post too long click to expand
     }
 
     return <View style={{maxHeight: 9000}}>
         <Hyperlink linkStyle={{color: '#ff7920'}} onPress={(url, text) => handleLinkPress(url)}>
-            <Text style={[styles.threadCom]}>{formatCom(com, flatListRef, index)}</Text>
+            <Text style={[styles.threadCom]}>{formatCom(com, flatListRef, indexMap)}</Text>
         </Hyperlink>
     </View>
 }
@@ -872,13 +875,14 @@ function detectYoutube(str) {
     return res.length > 0 ? res[1] : false;
 }
 
-const HASHTAG_FORMATTER = (string, listRef, index) => {
+const HASHTAG_FORMATTER = (string, listRef, indexMap) => {
     return string.split(/(>>[0-9]*)\s/gi).filter(Boolean).map((v, i) => {
         if (v.includes('>>')) {
+            const postId = parseInt(v.replace(' ', '').replace('>>', ''));
             return <TouchableOpacity
-                onPress={() => typeof listRef !== 'undefined' ? listRef.current.scrollToIndex({
+                onPress={() => indexMap.indexOf(postId) > -1 && typeof listRef !== 'undefined' ? listRef.current.scrollToIndex({
                     animated: true,
-                    index: index - 1, //TODO: NOT FUCKING INDEX! Try to find index by key
+                    index: indexMap.indexOf(postId),
                     viewOffset: 20,
                 }) : console.log(listRef)}
             ><Text style={{color: '#ff7920', fontWeight: 'bold'}}>{v.replace(' ', '')}</Text></TouchableOpacity>
@@ -888,7 +892,7 @@ const HASHTAG_FORMATTER = (string, listRef, index) => {
     })
 };
 
-const formatCom = (com, listRef, index) => {
+const formatCom = (com, listRef, indexMap) => {
     // return com.replaceAll('<br/>', "\n")
-    return HASHTAG_FORMATTER(he.decode(com.replaceAll('<br/>', "\n").replace(/<[^>]+>/g, ' ')), listRef, index);
+    return HASHTAG_FORMATTER(he.decode(com.replaceAll('<br/>', "\n").replace(/<[^>]+>/g, ' ')), listRef, indexMap);
 }
