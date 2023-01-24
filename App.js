@@ -35,10 +35,15 @@ import ImageView from 'react-native-image-viewing'
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import * as VideoThumbnails from 'expo-video-thumbnails';
+import * as Clipboard from 'expo-clipboard';
 
 import * as mime from 'mime';
 
 import styles from './styles';
+
+import {HoldItem, HoldMenuProvider} from 'react-native-hold-menu';
+import {RootSiblingParent} from 'react-native-root-siblings';
+import Toast from 'react-native-root-toast';
 
 import {getBoardThreadFromApi, getBoardThreadsWithBody, getBoarsFromApi, postViaApi} from './providers/deadach';
 
@@ -49,22 +54,27 @@ const Tab = createBottomTabNavigator();
 export default function App() {
     const scheme = useColorScheme();
     return (
-        <NavigationContainer theme={scheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <Stack.Navigator
-                initialRouteName="Home"
+        <RootSiblingParent>
+            <HoldMenuProvider
+                theme="dark"
+                iconComponent={Ionicons}
             >
-                <Stack.Screen name="Home" animationTypeForReplace="pop" headerBackTitle="Back" component={Home} options={{headerShown: false}} />
-                <Stack.Screen name="Form" animationTypeForReplace="pop" headerBackTitle="Back" component={PostForm}
-                              options={{
-                                  headerBackTitle: "Back",
-                              }}
-                />
-                <Stack.Screen name="Thread" component={ThreadScreen} options={{
-                    headerBackTitle: "Back",
-                    headerShown: true
-                }} />
-            </Stack.Navigator>
-        </NavigationContainer>
+                <NavigationContainer theme={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+                    <Stack.Navigator
+                        initialRouteName="Home"
+                    >
+                        <Stack.Screen name="Home" animationTypeForReplace="pop" headerBackTitle="Back" component={Home} options={{headerShown: false}} />
+                        <Stack.Screen name="Form" animationTypeForReplace="pop" headerBackTitle="Back" component={PostForm}
+                                      options={{
+                                          headerBackTitle: "Back",
+                                      }}
+                        />
+                        <Stack.Screen name="Thread" component={ThreadScreen} options={{
+                            headerBackTitle: "Back",
+                            headerShown: true
+                        }} />
+                    </Stack.Navigator>
+                </NavigationContainer></HoldMenuProvider></RootSiblingParent>
     );
 }
 
@@ -84,12 +94,12 @@ const getCaptcha = () => {
 }
 
 function PostForm({route, navigation}) {
-    const {board, thread} = route.params;
+    const {board, thread, postId} = route.params;
     const [images, setImages] = useState([]);
     const [isDisabled, setIsDisabled] = useState(false);
     const [isDisabledPost, setIsDisabledPost] = useState(false);
     const [subject, setSubject] = useState('');
-    const [body, setBody] = useState('');
+    const [body, setBody] = useState((postId !== null && postId !== 0 && typeof postId !== 'undefined') ? '>>' + postId + ' ' + "\n" : '');
     const [captchaText, setCaptchaText] = useState('');
 
     const [captchaCookie, setCaptchaCookie] = useState('');
@@ -679,6 +689,36 @@ function ThreadScreen({route, navigation}) {
         }) : console.log(flatlistRef)
     }, [rf])
 
+    const MenuItems = [
+        {
+            text: 'Post Actions', icon: 'copy-outline', isTitle: true, onPress: (postId) => {
+            }
+        },
+        {
+            text: 'Copy', icon: 'link-outline', onPress: (postId) => {
+                Clipboard.setStringAsync('https://4.dead.guru/' + board + '/res/' + thread + '.html#' + postId).then(() => {
+                    Toast.show('Copied', {
+                        duration: Toast.durations.SHORT,
+                        position: Toast.positions.BOTTOM,
+                        shadow: false,
+                        animation: true,
+                        hideOnPress: true,
+                        delay: 0,
+                    });
+                });
+            }
+        },
+        {
+            text: 'Reply', icon: 'copy-outline', onPress: (postId) => {
+                navigation.navigate('Form', {
+                    board: board,
+                    thread: thread,
+                    postId: postId
+                })
+            }
+        },
+    ];
+
     return (
         <View style={styles.container}>
             <ImageView
@@ -718,28 +758,35 @@ function ThreadScreen({route, navigation}) {
                     </View>
                 }
                 renderItem={({item, index}) =>
-                    <View style={{
-                        flexDirection: 'column',
-                        flexWrap: 'wrap',
-                        width: '100%'
+                    <HoldItem items={MenuItems} closeOnTap actionParams={{
+                        Reply: [item.no],
+                        Copy: [item.no]
                     }}>
-                        <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
-                            <Text style={styles.threadId}>#{item.no}</Text>
-                            <Text style={styles.threadName}>{item.name}: </Text>
-                            <Text style={styles.threadSub}>{item.sub}</Text>
-                        </View>
+                        <View style={{
+                            flexDirection: 'column',
+                            flexWrap: 'wrap',
+                            width: '100%',
+                            backgroundColor: '#000000'
+                        }}>
+                            <View style={{flexDirection: 'row', flexWrap: 'wrap', width: '100%'}}>
+                                <Text style={styles.threadId}>#{item.no}</Text>
+                                <Text style={styles.threadName}>{item.name}: </Text>
+                                <Text style={styles.threadSub}>{item.sub}</Text>
+                            </View>
 
-                        {processFiles(board, item, true, onSelect)}
-                        {processEmbed(board, item, true)}
-                        {'com' in item ? processCom(item.com, flatlistRef, indexMap) : null}
-                        <View
-                            style={{
-                                width: '100%',
-                                borderBottomColor: '#4f4f4f',
-                                borderBottomWidth: StyleSheet.hairlineWidth,
-                            }}
-                        />
-                    </View>}
+                            {processFiles(board, item, true, onSelect)}
+                            {processEmbed(board, item, true)}
+                            {'com' in item ? processCom(item.com, flatlistRef, indexMap) : null}
+                            <View
+                                style={{
+                                    width: '100%',
+                                    borderBottomColor: '#4f4f4f',
+                                    borderBottomWidth: StyleSheet.hairlineWidth,
+                                }}
+                            />
+                        </View>
+                    </HoldItem>
+                }
             />
             <SafeAreaView forceInset={{bottom: 'never'}} />
         </View>
@@ -893,6 +940,5 @@ const HASHTAG_FORMATTER = (string, listRef, indexMap) => {
 };
 
 const formatCom = (com, listRef, indexMap) => {
-    // return com.replaceAll('<br/>', "\n")
-    return HASHTAG_FORMATTER(he.decode(com.replaceAll('<br/>', "\n").replace(/<[^>]+>/g, ' ')), listRef, indexMap);
+    return HASHTAG_FORMATTER(he.decode(com.replace(/<br\/>/g, "\n").replace(/<[^>]+>/g, ' ')), listRef, indexMap);
 }
