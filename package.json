@@ -29,7 +29,8 @@
     "react-native-hyperlink": "^0.0.22",
     "react-native-image-viewing": "^0.2.2",
     "react-native-safe-area-context": "4.4.1",
-    "react-native-screens": "~3.18.0"
+    "react-native-screens": "~3.18.0",
+    "expo-linking": "~3.3.0"
   },
   "devDependencies": {
     "@babel/core": "^7.19.3"

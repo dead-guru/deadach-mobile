@@ -7,7 +7,6 @@ import {
     FlatList,
     Image,
     KeyboardAvoidingView,
-    Linking,
     Platform,
     RefreshControl,
     SafeAreaView,
@@ -21,6 +20,7 @@ import {
     useColorScheme,
     View
 } from 'react-native';
+import * as Linking from 'expo-linking';
 import React, {useEffect, useRef, useState} from 'react';
 import {DarkTheme, DefaultTheme, NavigationContainer} from '@react-navigation/native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
@@ -368,14 +368,14 @@ function selectedImagesPreview(images) {
     let is = [];
     for (const i in images) {
 
-        let preview = <Image key={i} source={{uri: images[i].preview}} style={{
+        let preview = <Image source={{uri: images[i].preview}} style={{
             width: 100,
             height: 100,
             resizeMode: 'cover',
         }} />
 
         if (images[i].type === 'video') {
-            preview = <View key={'v_' + i} style={{
+            preview = <View style={{
                 borderRadius: 5,
                 borderWidth: 1,
                 borderColor: '#ffffff',
@@ -423,7 +423,6 @@ function Home({navigation}) {
                         iconName = focused ? 'document-text' : 'document-text-outline';
                     }
 
-                    // You can return any component that you like here!
                     return <Ionicons name={iconName} size={size} color={color} />;
                 },
                 tabBarActiveTintColor: 'tomato',
@@ -466,7 +465,6 @@ function BoardsScreen({navigation}) {
                 contentContainerStyle={{paddingBottom: 100}}
                 sections={apiResponse}
                 renderItem={({item}) => <TouchableOpacity
-                    key={item.board}
                     onPress={() => navigation.replace('Home', {
                         screen: 'Board',
                         params: {
@@ -506,6 +504,7 @@ function BoardScreen({route, navigation}) {
     const [apiResponse, setApiResponse] = useState([]);
 
     const getData = (page, board) => {
+        console.log('getData!!!');
         setP(page)
         setRefreshing(true);
         let oldApiResponse = apiResponse;
@@ -560,9 +559,9 @@ function BoardScreen({route, navigation}) {
                         {refreshing ? <ActivityIndicator /> : null}
                     </View>
                 }
+                keyExtractor={(item) => (`thread-${item.no}`)}
                 renderItem={({item}) =>
                     <TouchableOpacity
-                        key={item.no}
                         onPress={() => navigation.navigate('Thread', {
                             board: board,
                             thread: item.no
@@ -576,7 +575,7 @@ function BoardScreen({route, navigation}) {
                         {processFiles(board, item, false)}
                         {processEmbed(board, item, false)}
                         {'com' in item ? <View style={{maxHeight: 150}}>
-                            <Text style={[styles.threadCom]}>{formatCom(item.com)}</Text>
+                            <Text key={"post_text_" + item.no.toString()} style={[styles.threadCom]}>{formatCom(item.com)}</Text>
                         </View> : null}
 
                     </View>
@@ -685,7 +684,7 @@ function ThreadScreen({route, navigation}) {
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={getData} />
                 }
-                keyExtractor={(item, index) => index.toString()}
+                keyExtractor={(item) => `post-${item.no}`}
                 ListFooterComponent={
                     <View>
                         <TouchableHighlight onPress={() => {
@@ -720,12 +719,7 @@ function ThreadScreen({route, navigation}) {
 
                         {processFiles(board, item, true, onSelect)}
                         {processEmbed(board, item, true)}
-                        {'com' in item ?
-                            <View style={{maxHeight: 9000}}>
-                                <Hyperlink linkStyle={{color: '#ff7920'}} onPress={(url, text) => handleLinkPress(url)}>
-                                    <Text style={[styles.threadCom]}>{formatCom(item.com, flatlistRef, index)}</Text>
-                                </Hyperlink>
-                            </View> : null}
+                        {'com' in item ? processCom(item.com, flatlistRef, index) : null}
                         <View
                             style={{
                                 width: '100%',
@@ -740,6 +734,18 @@ function ThreadScreen({route, navigation}) {
     );
 }
 
+const processCom = (com, flatListRef, index) => {
+    if (com.length > 500) {
+        //TODO: Post too long click to expand
+    }
+
+    return <View style={{maxHeight: 9000}}>
+        <Hyperlink linkStyle={{color: '#ff7920'}} onPress={(url, text) => handleLinkPress(url)}>
+            <Text style={[styles.threadCom]}>{formatCom(com, flatListRef, index)}</Text>
+        </Hyperlink>
+    </View>
+}
+
 const processEmbed = (board, item, clickable) => {
     if ('embed' in item) {
         if (detectYoutube(item.embed)) { //TODO: vimeo, vocaro
@@ -752,7 +758,6 @@ const processEmbed = (board, item, clickable) => {
 
             if (clickable) {
                 image = <TouchableOpacity
-                    key={item.no}
                     onPress={() => handleLinkPress('https://www.youtube.com/watch?v=' + detectYoutube(item.embed))}
                 >{image}</TouchableOpacity>
             }
@@ -793,7 +798,7 @@ const processFiles = (board, item, clickable, onSelect) => {
             image.push(
                 <Image
                     style={styles.postImage}
-                    key={board + '_' + item.no + '_' + firstImage.filename + (clickable ? '_c' : '')}
+                    key={'post_image_' + item.no.toString()}
                     source={{
                         uri: 'https://4.dead.guru/' + board + '/thumb/' + firstImage.filename + '.png',
                     }}
@@ -801,24 +806,24 @@ const processFiles = (board, item, clickable, onSelect) => {
 
             if (clickable) {
                 image = [<TouchableOpacity
+                    key={'post_image_c_' + item.no.toString()}
                     onPress={() => onSelect(item.images, 0)}
                 >{image[0]}</TouchableOpacity>,
-                    <View style={{
+                    <View key={'post_image_meta_' + item.no.toString()} style={{
                         flexDirection: 'row',
                         flexWrap: 'wrap',
                         alignSelf: 'flex-start',
-                    }}><Text style={[styles.threadImagesCount]}>1/{imagesCount}</Text>
-                        <Text style={[styles.threadImagesName]}>{firstImage.original}{firstImage.extension}</Text></View>]
+                    }}><Text key={'post_image_p_' + item.no.toString()} style={[styles.threadImagesCount]}>1/{imagesCount}</Text>
+                        <Text key={'post_image_t_' + item.no.toString()} style={[styles.threadImagesName]}>{firstImage.original}{firstImage.extension}</Text></View>]
             }
         }
 
-        for (const file in files) {
+        for (const file in files) {//Only for video
             if (!['.webm', '.mp4'].includes(files[file].extension)) {
                 continue;
             }
 
             image.push(<TouchableOpacity
-                key={files[file].filename}
                 onPress={() => handleLinkPress('https://4.dead.guru/' + board + '/src/' + files[file].filename + files[file].extension)}
             ><View style={styles.threadFile}>
                 <Ionicons name='cloud-download-outline' size={24} color='#FFF' />
@@ -862,20 +867,20 @@ const HASHTAG_FORMATTER = (string, listRef, index) => {
     return string.split(/(>>[0-9]*)\s/gi).filter(Boolean).map((v, i) => {
         if (v.includes('>>')) {
             return <TouchableOpacity
-                key={v}
                 onPress={() => typeof listRef !== 'undefined' ? listRef.current.scrollToIndex({
                     animated: true,
                     index: index - 1, //TODO: NOT FUCKING INDEX! Try to find index by key
                     viewOffset: 20,
                 }) : console.log(listRef)}
-            ><Text key={i} style={{color: '#ff7920', fontWeight: 'bold'}}>{v.replace(' ', '')}</Text></TouchableOpacity>
+            ><Text style={{color: '#ff7920', fontWeight: 'bold'}}>{v.replace(' ', '')}</Text></TouchableOpacity>
         } else {
-            return <Text key={i}>{v}</Text>
+            return <Text key={'post_text_' + index}>{v}</Text>
         }
     })
 };
 
 const formatCom = (com, listRef, index) => {
+    // return com.replaceAll('<br/>', "\n")
     return HASHTAG_FORMATTER(he.decode(com.replaceAll('<br/>', "\n").replace(/<[^>]+>/g, ' ')), listRef, index);
 }
 
