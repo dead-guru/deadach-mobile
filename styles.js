@@ -14,10 +14,6 @@ const styles = StyleSheet.create({
         // backgroundColor: '#fff',
     },
     sectionHeader: {
-        paddingTop: 2,
-        paddingLeft: 10,
-        paddingRight: 10,
-        paddingBottom: 2,
         fontSize: 18,
         fontWeight: 'bold',
         color: '#FF7920',
@@ -27,6 +23,7 @@ const styles = StyleSheet.create({
         color: '#fff',
         width: "100%",
         padding: 10,
+        marginLeft: 20,
         fontSize: 18,
         height: 44,
     },

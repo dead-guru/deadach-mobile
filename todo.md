@@ -14,3 +14,4 @@
 * [ ] VirtualizedList: You have a large list that is slow to update () function ThreadScreen
 * [x] citation (>>234)
 * [ ] optimize citation???
+* [x] markdown in posts like [b]bold[/b] and other

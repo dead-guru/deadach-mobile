@@ -32,6 +32,8 @@ import he from 'he'
 import Hyperlink from 'react-native-hyperlink'
 import ImageView from 'react-native-image-viewing'
 
+import reactStringReplace from 'react-string-replace';
+
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import * as VideoThumbnails from 'expo-video-thumbnails';
@@ -266,15 +268,16 @@ function PostForm({route, navigation}) {
             marginHorizontal: 20,
             height: "100%",
         }}>
-            <KeyboardAvoidingView style={{
-                flex: 1,
-                flexDirection: 'column',
-                justifyContent: 'center',
-            }} behavior={Platform.select({
+            <KeyboardAvoidingView
+                style={{
+                    flex: 1,
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                }} behavior={Platform.select({
                 android: undefined,
                 ios: 'padding'
             })} enabled keyboardVerticalOffset={height + 47}>
-                <ScrollView style={{width: "100%"}}>
+                <ScrollView keyboardShouldPersistTaps={'always'} style={{width: "100%"}}>
                     {thread === null ? <View
                         style={{
                             backgroundColor: '#fff',
@@ -437,7 +440,7 @@ function Home({navigation}) {
 
                     return <Ionicons name={iconName} size={size} color={color} />;
                 },
-                tabBarActiveTintColor: 'tomato',
+                tabBarActiveTintColor: '#FF7920',
                 tabBarInactiveTintColor: 'gray',
             })}>
             <Tab.Screen name="Board" component={BoardScreen} listeners={() => ({
@@ -483,9 +486,23 @@ function BoardsScreen({navigation}) {
                             board: item.board
                         }
                     })}
-                ><Text style={styles.item}>{item.title.replace(/<[^>]+>/g, '')}</Text></TouchableOpacity>}
+                >
+                    <Text style={styles.item}>{item.title.replace(/<[^>]+>/g, '')}</Text>
+                </TouchableOpacity>}
                 renderSectionHeader={({section}) => (
-                    <Text style={styles.sectionHeader}>{section.title.replace(/<[^>]+>/g, '')}</Text>
+                    <View style={{
+                        paddingTop: 2,
+                        paddingLeft: 10,
+                        paddingRight: 10,
+                        backgroundColor: '#000000',
+                        paddingBottom: 2,
+                        flexDirection: 'row',
+                        flexWrap: 'wrap',
+                    }}>
+                        {/*<Ionicons name='radio-button-off-outline' size={18} color='#FF7920' />*/}
+                        <Text style={styles.sectionHeader}> {section.title.replace(/<[^>]+>/g, '')}</Text>
+                    </View>
+
                 )}
                 keyExtractor={item => `basicListEntry-${item.board}`}
             />
@@ -542,6 +559,35 @@ function BoardScreen({route, navigation}) {
 
     let onEndReachedCalledDuringMomentum = false;
 
+    const MenuItems = [
+        {
+            text: 'Post Actions', icon: 'copy-outline', isTitle: true, onPress: () => {
+            }
+        },
+        {
+            text: 'Copy', icon: 'link-outline', onPress: (board, thread) => {
+                Clipboard.setStringAsync('https://4.dead.guru/' + board + '/res/' + thread + '.html').then(() => {
+                    Toast.show('Copied', {
+                        duration: Toast.durations.SHORT,
+                        position: Toast.positions.BOTTOM,
+                        shadow: false,
+                        animation: true,
+                        hideOnPress: true,
+                        delay: 0,
+                    });
+                });
+            }
+        },
+        {
+            text: 'Reply', icon: 'copy-outline', onPress: (board, thread) => {
+                navigation.navigate('Form', {
+                    board: board,
+                    thread: thread
+                })
+            }
+        },
+    ];
+
     return (
         <View style={styles.container}>
             <FlatList
@@ -573,33 +619,36 @@ function BoardScreen({route, navigation}) {
                 }
                 keyExtractor={(item) => (`thread-${item.no}`)}
                 renderItem={({item}) =>
-                    <TouchableOpacity
-                        onPress={() => navigation.navigate('Thread', {
-                            board: board,
-                            thread: item.no
-                        })}
-                    ><View style={{flexDirection: 'column', flexWrap: 'wrap', width: '100%'}}>
-                        <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
-                            <Text style={styles.threadId}>#{item.no}</Text>
-                            <Text style={styles.threadName}>{item.name}: </Text>
-                            <Text style={styles.threadSub}>{item.sub}</Text>
+                    <HoldItem items={MenuItems} closeOnTap actionParams={{
+                        Reply: [board, item.no],
+                        Copy: [board, item.no]
+                    }}>
+                        <TouchableOpacity
+                            onPress={() => navigation.navigate('Thread', {
+                                board: board,
+                                thread: item.no
+                            })}
+                        ><View style={{flexDirection: 'column', flexWrap: 'wrap', width: '100%'}}>
+                            <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
+                                <Text style={styles.threadId}>#{item.no}</Text>
+                                <Text style={styles.threadName}>{item.name}: </Text>
+                                <Text style={styles.threadSub}>{item.sub}</Text>
+                            </View>
+                            {processFiles(board, item, false)}
+                            {processEmbed(board, item, false)}
+                            {'com_nomarkup' in item ? <View style={{maxHeight: 150}}>
+                                <Text key={"post_text_" + item.no.toString()} style={[styles.threadCom]}>{formatCom(item.com_nomarkup)}</Text>
+                            </View> : null}
                         </View>
-                        {processFiles(board, item, false)}
-                        {processEmbed(board, item, false)}
-                        {'com' in item ? <View style={{maxHeight: 150}}>
-                            <Text key={"post_text_" + item.no.toString()} style={[styles.threadCom]}>{formatCom(item.com)}</Text>
-                        </View> : null}
-
-                    </View>
-                        <View
-                            style={{
-                                width: '100%',
-                                borderBottomColor: '#4f4f4f',
-                                borderBottomWidth: StyleSheet.hairlineWidth,
-                            }}
-                        />
-                    </TouchableOpacity>
-
+                            <View
+                                style={{
+                                    width: '100%',
+                                    borderBottomColor: '#4f4f4f',
+                                    borderBottomWidth: StyleSheet.hairlineWidth,
+                                }}
+                            />
+                        </TouchableOpacity>
+                    </HoldItem>
                 }
             />
             <SafeAreaView forceInset={{bottom: 'never'}} />
@@ -686,7 +735,7 @@ function ThreadScreen({route, navigation}) {
     useEffect(() => {
         typeof flatlistRef !== 'undefined' ? flatlistRef.current.scrollToEnd({
             animated: true,
-        }) : console.log(flatlistRef)
+        }) : null
     }, [rf])
 
     const MenuItems = [
@@ -695,7 +744,7 @@ function ThreadScreen({route, navigation}) {
             }
         },
         {
-            text: 'Copy', icon: 'link-outline', onPress: (postId) => {
+            text: 'Copy', icon: 'link-outline', onPress: (board, thread, postId) => {
                 Clipboard.setStringAsync('https://4.dead.guru/' + board + '/res/' + thread + '.html#' + postId).then(() => {
                     Toast.show('Copied', {
                         duration: Toast.durations.SHORT,
@@ -709,7 +758,7 @@ function ThreadScreen({route, navigation}) {
             }
         },
         {
-            text: 'Reply', icon: 'copy-outline', onPress: (postId) => {
+            text: 'Reply', icon: 'copy-outline', onPress: (board, thread, postId) => {
                 navigation.navigate('Form', {
                     board: board,
                     thread: thread,
@@ -759,8 +808,8 @@ function ThreadScreen({route, navigation}) {
                 }
                 renderItem={({item, index}) =>
                     <HoldItem items={MenuItems} closeOnTap actionParams={{
-                        Reply: [item.no],
-                        Copy: [item.no]
+                        Reply: [board, thread, item.no],
+                        Copy: [board, thread, item.no]
                     }}>
                         <View style={{
                             flexDirection: 'column',
@@ -776,7 +825,7 @@ function ThreadScreen({route, navigation}) {
 
                             {processFiles(board, item, true, onSelect)}
                             {processEmbed(board, item, true)}
-                            {'com' in item ? processCom(item.com, flatlistRef, indexMap) : null}
+                            {'com_nomarkup' in item ? processCom(item.com_nomarkup, flatlistRef, indexMap) : null}
                             <View
                                 style={{
                                     width: '100%',
@@ -939,6 +988,58 @@ const HASHTAG_FORMATTER = (string, listRef, indexMap) => {
     })
 };
 
+const NEW_HASHTAG_FORMATTER = (string, listRef, indexMap) => {
+
+    //cit
+    let NewString = reactStringReplace(string, /(>>[0-9]*)\s/gi, (match, i) => {
+        const postId = parseInt(match.replace(' ', '').replace('>>', ''));
+        return <TouchableOpacity
+            onPress={() => indexMap.indexOf(postId) > -1 && typeof listRef !== 'undefined' ? listRef.current.scrollToIndex({
+                animated: true,
+                index: indexMap.indexOf(postId),
+                viewOffset: 20,
+            }) : null}
+        ><Text style={{color: '#ff7920', fontWeight: 'bold'}}>{match}</Text></TouchableOpacity>
+    });
+
+    //quote
+    NewString = reactStringReplace(NewString, /(>.*)/gi, (match, i) => {
+        return <Text style={{color: '#68a454'}}>{match}</Text>
+    })
+
+    //bold
+    NewString = reactStringReplace(NewString, /\[b\](.*)\[\/b\]/gi, (match, i) => {
+        return <Text style={{fontWeight: "bold"}}>{match}</Text>
+    })
+    //italic
+    NewString = reactStringReplace(NewString, /\[i\](.*)\[\/i\]/gi, (match, i) => {
+        return <Text style={{fontStyle: 'italic'}}>{match}</Text>
+    })
+    //underline
+    NewString = reactStringReplace(NewString, /__(.*)__/gi, (match, i) => {
+        return <Text style={{textDecorationLine: 'underline'}}>{match}</Text>
+    })
+    //strike
+    NewString = reactStringReplace(NewString, /~~(.*)~~/gi, (match, i) => {
+        return <Text style={{textDecorationLine: 'line-through', textDecorationStyle: 'solid'}}>{match}</Text>
+    })
+    //head
+    NewString = reactStringReplace(NewString, /==(.*)==/gi, (match, i) => {
+        return <Text style={{
+            color: '#ff7920',
+            fontWeight: 'bold',
+            fontSize: 18,
+            textTransform: 'uppercase'
+        }}>{match}</Text>
+    })
+    //spoiler
+    NewString = reactStringReplace(NewString, /\*\*(.*)\*\*/gi, (match, i) => {
+        return <Text style={{color: '#282828', fontStyle: 'italic', textDecorationStyle: 'double'}}>{match}</Text>
+    })
+
+    return NewString
+}
+
 const formatCom = (com, listRef, indexMap) => {
-    return HASHTAG_FORMATTER(he.decode(com.replace(/<br\/>/g, "\n").replace(/<[^>]+>/g, ' ')), listRef, indexMap);
+    return NEW_HASHTAG_FORMATTER(he.decode(com), listRef, indexMap);
 }
