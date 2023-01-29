@@ -81,7 +81,6 @@ const styles = StyleSheet.create({
     },
     postImage: {
         height: 200,
-        resizeMode: 'cover',
         marginTop: 10,
         width: '100%'
     },

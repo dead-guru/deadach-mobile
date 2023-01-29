@@ -4,7 +4,6 @@ import {
     ActivityIndicator,
     Alert,
     Button,
-    FlatList,
     Image,
     KeyboardAvoidingView,
     Platform,
@@ -31,6 +30,10 @@ import {createStackNavigator} from '@react-navigation/stack';
 import he from 'he'
 import Hyperlink from 'react-native-hyperlink'
 import ImageView from 'react-native-image-viewing'
+
+import {FlashList} from "@shopify/flash-list"
+
+import FastImage from 'react-native-fast-image' //Only on native client!
 
 import reactStringReplace from 'react-string-replace';
 
@@ -429,8 +432,7 @@ function selectedImagesPreview(images) {
         let preview = <Image source={{uri: images[i].preview}} style={{
             width: 100,
             height: 100,
-            resizeMode: 'cover',
-        }} />
+        }} resizeMode={FastImage.resizeMode.cover} />
 
         if (images[i].type === 'video') {
             preview = <View style={{
@@ -668,35 +670,27 @@ function BoardScreen({route, navigation}) {
                     <Text key={"post_text_" + item.no.toString()} style={[styles.threadCom]}>{formatCom(item.com_nomarkup)}</Text>
                 </View> : null}
             </View>
-                <View
-                    style={{
-                        width: '100%',
-                        borderBottomColor: '#4f4f4f',
-                        borderBottomWidth: StyleSheet.hairlineWidth,
-                    }}
-                />
+
             </TouchableOpacity>
         </HoldItem>
     }, []);
 
-    const ITEM_HEIGHT = 300;
-
-    const getItemLayout = useCallback((data, index) => ({
-        length: ITEM_HEIGHT,
-        offset: ITEM_HEIGHT * index,
-        index
-    }), [])
+    const separator = () => {
+        return <View
+            style={{
+                width: '100%',
+                borderBottomColor: '#4f4f4f',
+                borderBottomWidth: StyleSheet.hairlineWidth,
+            }}
+        />
+    }
 
     return (
         <View style={styles.container}>
-            <FlatList
+            <FlashList
                 contentContainerStyle={{paddingBottom: 100}}
-                style={{width: '100%'}}
-                initialNumToRender={7}
-                maxToRenderPerBatch={7}
-                getItemLayout={getItemLayout}
-                showsVerticalScrollIndicator={false}
-                windowSize={6}
+                ItemSeparatorComponent={separator}
+                estimatedItemSize={200}
                 data={apiResponse}
                 onMomentumScrollBegin={() => {
                     onEndReachedCalledDuringMomentum = false;
@@ -804,9 +798,9 @@ function ThreadScreen({route, navigation}) {
     }, [board, thread, refreshing, rf]);
 
     useEffect(() => {
-        typeof flatlistRef !== 'undefined' ? flatlistRef.current.scrollToEnd({
+        typeof rf !== 'undefined' && typeof flatlistRef !== 'undefined' ? flatlistRef.current.scrollToEnd({
             animated: true,
-        }) : null
+        }) : false
     }, [rf])
 
     const MenuItems = [
@@ -863,16 +857,19 @@ function ThreadScreen({route, navigation}) {
                 {processFiles(board, item, true, onSelect)}
                 {processEmbed(board, item, true)}
                 {'com_nomarkup' in item ? processCom(item.com_nomarkup, flatlistRef, indexMap) : null}
-                <View
-                    style={{
-                        width: '100%',
-                        borderBottomColor: '#4f4f4f',
-                        borderBottomWidth: StyleSheet.hairlineWidth,
-                    }}
-                />
             </View>
         </HoldItem>
     }, []);
+
+    const separator = () => {
+        return <View
+            style={{
+                width: '100%',
+                borderBottomColor: '#4f4f4f',
+                borderBottomWidth: StyleSheet.hairlineWidth,
+            }}
+        />
+    };
 
     return (
         <View style={styles.container}>
@@ -884,14 +881,12 @@ function ThreadScreen({route, navigation}) {
                 onRequestClose={onRequestClose}
                 onLongPress={onLongPress}
             />
-            <FlatList
+            <FlashList
                 ref={flatlistRef}
                 data={apiResponse}
-                initialNumToRender={10}
-                maxToRenderPerBatch={10}
-                showsVerticalScrollIndicator={false}
-                windowSize={10}
+                estimatedItemSize={200}
                 contentContainerStyle={{paddingBottom: 20}}
+                ItemSeparatorComponent={separator}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={getData} />
                 }
@@ -939,6 +934,7 @@ const processEmbed = (board, item, clickable) => {
     if ('embed' in item) {
         if (detectYoutube(item.embed)) { //TODO: vimeo, vocaro
             let image = <Image
+                resizeMode={FastImage.resizeMode.cover}
                 style={styles.postImage}
                 source={{
                     uri: 'https://img.youtube.com/vi/' + detectYoutube(item.embed) + '/0.jpg',
@@ -987,6 +983,7 @@ const processFiles = (board, item, clickable, onSelect) => {
             image.push(
                 <Image
                     style={styles.postImage}
+                    resizeMode={FastImage.resizeMode.cover}
                     key={'post_image_' + item.no.toString()}
                     source={{
                         uri: 'https://4.dead.guru/' + board + '/thumb/' + firstImage.filename + '.png',
