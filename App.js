@@ -692,11 +692,11 @@ function BoardScreen({route, navigation}) {
             <FlatList
                 contentContainerStyle={{paddingBottom: 100}}
                 style={{width: '100%'}}
-                initialNumToRender={4}
-                maxToRenderPerBatch={4}
+                initialNumToRender={7}
+                maxToRenderPerBatch={7}
                 getItemLayout={getItemLayout}
                 showsVerticalScrollIndicator={false}
-                windowSize={5}
+                windowSize={6}
                 data={apiResponse}
                 onMomentumScrollBegin={() => {
                     onEndReachedCalledDuringMomentum = false;
@@ -888,9 +888,9 @@ function ThreadScreen({route, navigation}) {
                 ref={flatlistRef}
                 data={apiResponse}
                 initialNumToRender={10}
-                maxToRenderPerBatch={5}
+                maxToRenderPerBatch={10}
                 showsVerticalScrollIndicator={false}
-                windowSize={5}
+                windowSize={10}
                 contentContainerStyle={{paddingBottom: 20}}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={getData} />
