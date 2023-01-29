@@ -21,7 +21,7 @@ import {
     View
 } from 'react-native';
 import * as Linking from 'expo-linking';
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {DarkTheme, DefaultTheme, NavigationContainer} from '@react-navigation/native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {useHeaderHeight} from '@react-navigation/elements'
@@ -38,6 +38,7 @@ import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import * as Clipboard from 'expo-clipboard';
+import {getLocales} from 'expo-localization';
 
 import * as mime from 'mime';
 
@@ -46,6 +47,7 @@ import styles from './styles';
 import {HoldItem, HoldMenuProvider} from 'react-native-hold-menu';
 import {RootSiblingParent} from 'react-native-root-siblings';
 import Toast from 'react-native-root-toast';
+import {I18n} from 'i18n-js';
 
 import {getBoardThreadFromApi, getBoardThreadsWithBody, getBoarsFromApi, postViaApi} from './providers/deadach';
 
@@ -53,8 +55,49 @@ enableScreens();
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
+const translations = {
+    en: {
+        List: 'List',
+        Board: 'Board',
+        End: 'This is the end...',
+        Subject: 'Subject',
+        Post: 'Post',
+        Create: 'Create',
+        Captcha: 'Captcha',
+        ClickToReload: 'Click on image to reload captcha',
+        AddFiles: 'Add Files',
+        PostFor: 'Post for',
+        CommentFor: 'Comment for',
+        Back: 'Back',
+        BoardFirst: 'Please, select board first!',
+    },
+    uk: {
+        List: 'Список',
+        Board: 'Дошка',
+        End: 'Це кінець...',
+        Subject: 'Тема',
+        Post: 'Пост',
+        Create: 'Створити',
+        Captcha: 'Капча',
+        ClickToReload: 'Натистніть на картинку для оновлення',
+        AddFiles: 'Додати файли',
+        PostFor: 'Пост в',
+        CommentFor: 'Комментар в',
+        Back: 'Назад',
+        BoardFirst: 'Спочатку оберіть дошку зі списку!',
+    },
+};
+
+const i18n = new I18n(translations);
+
+i18n.locale = getLocales()[0].languageCode;
+i18n.enableFallback = true;
+
 export default function App() {
     const scheme = useColorScheme();
+
+    console.log(getLocales()[0].languageCode)
+
     return (
         <RootSiblingParent>
             <HoldMenuProvider
@@ -65,14 +108,14 @@ export default function App() {
                     <Stack.Navigator
                         initialRouteName="Home"
                     >
-                        <Stack.Screen name="Home" animationTypeForReplace="pop" headerBackTitle="Back" component={Home} options={{headerShown: false}} />
-                        <Stack.Screen name="Form" animationTypeForReplace="pop" headerBackTitle="Back" component={PostForm}
+                        <Stack.Screen name="Home" animationTypeForReplace="pop" headerBackTitle={i18n.t('Back')} component={Home} options={{headerShown: false}} />
+                        <Stack.Screen name="Form" animationTypeForReplace="pop" headerBackTitle={i18n.t('Back')} component={PostForm}
                                       options={{
-                                          headerBackTitle: "Back",
+                                          headerBackTitle: i18n.t('Back'),
                                       }}
                         />
                         <Stack.Screen name="Thread" component={ThreadScreen} options={{
-                            headerBackTitle: "Back",
+                            headerBackTitle: i18n.t('Back'),
                             headerShown: true
                         }} />
                     </Stack.Navigator>
@@ -117,9 +160,9 @@ function PostForm({route, navigation}) {
         captchaCookie: ''
     });
 
-    let title = 'Post for /' + board + '/';
+    let title = i18n.t('PostFor') + ' /' + board + '/';
     if (thread !== null) {
-        title = 'Comment for /' + board + '/ #' + thread;
+        title = i18n.t('CommentFor') + ' /' + board + '/ #' + thread;
         post.thread = thread;
     }
 
@@ -294,13 +337,13 @@ function PostForm({route, navigation}) {
                             maxLength={40}
                             value={subject}
                             onChangeText={setSubject}
-                            placeholder={"Subject"}
+                            placeholder={i18n.t('Subject')}
                             style={{padding: 10, backgroundColor: '#131313', color: '#ffffff', borderWidth: 1,}}
                         /></View> : null}
                     <View style={{backgroundColor: '#333333', marginVertical: 10}}>
                         <Button
                             style={{color: '#fff'}}
-                            title={isDisabled ? "Loading..." : "Add files"}
+                            title={isDisabled ? "Loading..." : i18n.t('AddFiles')}
                             disabled={isDisabled}
                             onPress={pickImage}
                         />
@@ -322,7 +365,7 @@ function PostForm({route, navigation}) {
                             value={body}
                             placeholderTextColor="#6B6B6B"
                             onChangeText={setBody}
-                            placeholder={"Post"}
+                            placeholder={i18n.t("Post")}
                             style={{
                                 padding: 10,
                                 height: 300,
@@ -333,7 +376,7 @@ function PostForm({route, navigation}) {
                         <View>
                             <TouchableHighlight onPress={generateCaptcha}>
                                 <View>
-                                    <Text style={{color: '#6B6B6B'}}>Click on image to reload captcha</Text>
+                                    <Text style={{color: '#6B6B6B'}}>{i18n.t('ClickToReload')}</Text>
                                     <Image style={{
                                         width: 250,
                                         height: 80,
@@ -356,7 +399,7 @@ function PostForm({route, navigation}) {
                                     maxLength={6}
                                     value={captchaText}
                                     onChangeText={setCaptchaText}
-                                    placeholder={"Captcha"}
+                                    placeholder={i18n.t('Captcha')}
                                     style={{padding: 10, backgroundColor: '#131313', color: '#ffffff', borderWidth: 1,}}
                                 /></View>
                         </View>
@@ -365,7 +408,7 @@ function PostForm({route, navigation}) {
                         <Button
                             style={{color: '#fff', fontWeight: 'bold'}}
                             color={'#ff7920'}
-                            title={isDisabledPost ? "Posting..." : "Create"}
+                            title={isDisabledPost ? "Posting..." : i18n.t('Create')}
                             disabled={isDisabledPost}
                             onPress={() => {
                                 postHandle(post)
@@ -416,8 +459,9 @@ function Home({navigation}) {
         <Tab.Navigator
             initialRouteName="List"
             screenOptions={({route}) => ({
+                headerShown: route.name !== 'List',
                 headerRight: () => (
-                    route.name === 'Board' ?
+                    route.name === 'Board' && typeof route.params === "object" && 'board' in route.params ?
                         <TouchableHighlight onPress={() => {
                             navigation.navigate('Form', {
                                 board: typeof route.params === 'object' && 'board' in route.params ? route.params.board : null,
@@ -443,12 +487,16 @@ function Home({navigation}) {
                 tabBarActiveTintColor: '#FF7920',
                 tabBarInactiveTintColor: 'gray',
             })}>
-            <Tab.Screen name="Board" component={BoardScreen} listeners={() => ({
+            <Tab.Screen name="Board" component={BoardScreen} options={{
+                title: i18n.t('Board')
+            }} listeners={() => ({
                 tabPress: () => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 },
             })} />
-            <Tab.Screen name="List" component={BoardsScreen} listeners={() => ({
+            <Tab.Screen name="List" options={{
+                title: i18n.t('List')
+            }} component={BoardsScreen} listeners={() => ({
                 tabPress: () => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 },
@@ -476,8 +524,14 @@ function BoardsScreen({navigation}) {
 
     return (
         <View style={styles.container}>
+            <Text style={{fontSize: 90, marginTop: 30, fontWeight: "bold", color: '#ffffff'}}>Deadach</Text>
             <SectionList
                 contentContainerStyle={{paddingBottom: 100}}
+                ListFooterComponent={
+                    <View style={{height: 160, justifyContent: 'center', alignItems: 'center'}}>
+                        <Text style={{color: '#848484'}}>{i18n.t('End')}</Text>
+                    </View>
+                }
                 sections={apiResponse}
                 renderItem={({item}) => <TouchableOpacity
                     onPress={() => navigation.replace('Home', {
@@ -520,7 +574,7 @@ function BoardScreen({route, navigation}) {
     } else {
         return (
             <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-                <Text style={{color: '#848484'}}>Please, select board first!</Text>
+                <Text style={{color: '#848484'}}>{i18n.t('BoardFirst')}</Text>
             </View>
         );
     }
@@ -588,13 +642,61 @@ function BoardScreen({route, navigation}) {
         },
     ];
 
+    const keyExtractor = useCallback((item) => {
+        return `thread-${item.no}`;
+    }, []);
+
+    const renderItem = useCallback(({item}) => {
+        return <HoldItem items={MenuItems} closeOnTap actionParams={{
+            Reply: [board, item.no],
+            Copy: [board, item.no]
+        }}>
+            <TouchableOpacity
+                onPress={() => navigation.navigate('Thread', {
+                    board: board,
+                    thread: item.no
+                })}
+            ><View style={{flexDirection: 'column', flexWrap: 'wrap', width: '100%'}}>
+                <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
+                    <Text style={styles.threadId}>#{item.no}</Text>
+                    <Text style={styles.threadName}>{item.name}: </Text>
+                    <Text style={styles.threadSub}>{item.sub}</Text>
+                </View>
+                {processFiles(board, item, false)}
+                {processEmbed(board, item, false)}
+                {'com_nomarkup' in item ? <View style={{maxHeight: 150}}>
+                    <Text key={"post_text_" + item.no.toString()} style={[styles.threadCom]}>{formatCom(item.com_nomarkup)}</Text>
+                </View> : null}
+            </View>
+                <View
+                    style={{
+                        width: '100%',
+                        borderBottomColor: '#4f4f4f',
+                        borderBottomWidth: StyleSheet.hairlineWidth,
+                    }}
+                />
+            </TouchableOpacity>
+        </HoldItem>
+    }, []);
+
+    const ITEM_HEIGHT = 300;
+
+    const getItemLayout = useCallback((data, index) => ({
+        length: ITEM_HEIGHT,
+        offset: ITEM_HEIGHT * index,
+        index
+    }), [])
+
     return (
         <View style={styles.container}>
             <FlatList
                 contentContainerStyle={{paddingBottom: 100}}
                 style={{width: '100%'}}
-                initialNumToRender={7}
+                initialNumToRender={4}
+                maxToRenderPerBatch={4}
+                getItemLayout={getItemLayout}
                 showsVerticalScrollIndicator={false}
+                windowSize={5}
                 data={apiResponse}
                 onMomentumScrollBegin={() => {
                     onEndReachedCalledDuringMomentum = false;
@@ -613,43 +715,12 @@ function BoardScreen({route, navigation}) {
                 }
                 ListFooterComponent={
                     <View style={{height: 160, justifyContent: 'center', alignItems: 'center'}}>
-                        <Text style={{color: '#848484'}}>This is the end...</Text>
+                        <Text style={{color: '#848484'}}>{i18n.t('End')}</Text>
                         {refreshing ? <ActivityIndicator /> : null}
                     </View>
                 }
-                keyExtractor={(item) => (`thread-${item.no}`)}
-                renderItem={({item}) =>
-                    <HoldItem items={MenuItems} closeOnTap actionParams={{
-                        Reply: [board, item.no],
-                        Copy: [board, item.no]
-                    }}>
-                        <TouchableOpacity
-                            onPress={() => navigation.navigate('Thread', {
-                                board: board,
-                                thread: item.no
-                            })}
-                        ><View style={{flexDirection: 'column', flexWrap: 'wrap', width: '100%'}}>
-                            <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
-                                <Text style={styles.threadId}>#{item.no}</Text>
-                                <Text style={styles.threadName}>{item.name}: </Text>
-                                <Text style={styles.threadSub}>{item.sub}</Text>
-                            </View>
-                            {processFiles(board, item, false)}
-                            {processEmbed(board, item, false)}
-                            {'com_nomarkup' in item ? <View style={{maxHeight: 150}}>
-                                <Text key={"post_text_" + item.no.toString()} style={[styles.threadCom]}>{formatCom(item.com_nomarkup)}</Text>
-                            </View> : null}
-                        </View>
-                            <View
-                                style={{
-                                    width: '100%',
-                                    borderBottomColor: '#4f4f4f',
-                                    borderBottomWidth: StyleSheet.hairlineWidth,
-                                }}
-                            />
-                        </TouchableOpacity>
-                    </HoldItem>
-                }
+                keyExtractor={keyExtractor}
+                renderItem={renderItem}
             />
             <SafeAreaView forceInset={{bottom: 'never'}} />
         </View>
@@ -768,6 +839,41 @@ function ThreadScreen({route, navigation}) {
         },
     ];
 
+    const keyExtractor = useCallback((item) => {
+        return `post-${item.no}`;
+    }, []);
+
+    const renderItem = useCallback(({item}) => {
+        return <HoldItem items={MenuItems} closeOnTap actionParams={{
+            Reply: [board, thread, item.no],
+            Copy: [board, thread, item.no]
+        }}>
+            <View style={{
+                flexDirection: 'column',
+                flexWrap: 'wrap',
+                width: '100%',
+                backgroundColor: '#000000'
+            }}>
+                <View style={{flexDirection: 'row', flexWrap: 'wrap', width: '100%'}}>
+                    <Text style={styles.threadId}>#{item.no}</Text>
+                    <Text style={styles.threadName}>{item.name}: </Text>
+                    <Text style={styles.threadSub}>{item.sub}</Text>
+                </View>
+
+                {processFiles(board, item, true, onSelect)}
+                {processEmbed(board, item, true)}
+                {'com_nomarkup' in item ? processCom(item.com_nomarkup, flatlistRef, indexMap) : null}
+                <View
+                    style={{
+                        width: '100%',
+                        borderBottomColor: '#4f4f4f',
+                        borderBottomWidth: StyleSheet.hairlineWidth,
+                    }}
+                />
+            </View>
+        </HoldItem>
+    }, []);
+
     return (
         <View style={styles.container}>
             <ImageView
@@ -781,11 +887,15 @@ function ThreadScreen({route, navigation}) {
             <FlatList
                 ref={flatlistRef}
                 data={apiResponse}
+                initialNumToRender={10}
+                maxToRenderPerBatch={5}
+                showsVerticalScrollIndicator={false}
+                windowSize={5}
                 contentContainerStyle={{paddingBottom: 20}}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={getData} />
                 }
-                keyExtractor={(item) => `post-${item.no}`}
+                keyExtractor={keyExtractor}
                 ListFooterComponent={
                     <View>
                         <TouchableHighlight onPress={() => {
@@ -793,7 +903,7 @@ function ThreadScreen({route, navigation}) {
                             getData();
                         }}>
                             <View style={{height: 160, justifyContent: 'center', alignItems: 'center'}}>
-                                <Text style={{color: '#848484'}}>This is the end...</Text>
+                                <Text style={{color: '#848484'}}>{i18n.t('End')}</Text>
                                 <View style={{
                                     flexDirection: 'row',
                                     flexWrap: 'wrap',
@@ -806,36 +916,7 @@ function ThreadScreen({route, navigation}) {
                         {refreshing ? <ActivityIndicator /> : null}
                     </View>
                 }
-                renderItem={({item, index}) =>
-                    <HoldItem items={MenuItems} closeOnTap actionParams={{
-                        Reply: [board, thread, item.no],
-                        Copy: [board, thread, item.no]
-                    }}>
-                        <View style={{
-                            flexDirection: 'column',
-                            flexWrap: 'wrap',
-                            width: '100%',
-                            backgroundColor: '#000000'
-                        }}>
-                            <View style={{flexDirection: 'row', flexWrap: 'wrap', width: '100%'}}>
-                                <Text style={styles.threadId}>#{item.no}</Text>
-                                <Text style={styles.threadName}>{item.name}: </Text>
-                                <Text style={styles.threadSub}>{item.sub}</Text>
-                            </View>
-
-                            {processFiles(board, item, true, onSelect)}
-                            {processEmbed(board, item, true)}
-                            {'com_nomarkup' in item ? processCom(item.com_nomarkup, flatlistRef, indexMap) : null}
-                            <View
-                                style={{
-                                    width: '100%',
-                                    borderBottomColor: '#4f4f4f',
-                                    borderBottomWidth: StyleSheet.hairlineWidth,
-                                }}
-                            />
-                        </View>
-                    </HoldItem>
-                }
+                renderItem={renderItem}
             />
             <SafeAreaView forceInset={{bottom: 'never'}} />
         </View>
