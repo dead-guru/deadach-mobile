@@ -29,8 +29,8 @@ const styles = StyleSheet.create({
     },
     threadCom: {
         color: '#fff',
+        backgroundColor: '#000',
         padding: 10,
-        paddingBottom: 20,
         fontSize: 14,
     },
     threadImagesCount: {

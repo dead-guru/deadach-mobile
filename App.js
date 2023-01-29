@@ -26,7 +26,7 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {useHeaderHeight} from '@react-navigation/elements'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import {createStackNavigator} from '@react-navigation/stack';
+import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import he from 'he'
 import Hyperlink from 'react-native-hyperlink'
 import ImageView from 'react-native-image-viewing'
@@ -34,7 +34,6 @@ import ImageView from 'react-native-image-viewing'
 import {FlashList} from "@shopify/flash-list"
 
 import FastImage from 'react-native-fast-image' //Only on native client!
-
 import reactStringReplace from 'react-string-replace';
 
 import * as FileSystem from 'expo-file-system';
@@ -55,7 +54,7 @@ import {I18n} from 'i18n-js';
 import {getBoardThreadFromApi, getBoardThreadsWithBody, getBoarsFromApi, postViaApi} from './providers/deadach';
 
 enableScreens();
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const translations = {
@@ -648,32 +647,6 @@ function BoardScreen({route, navigation}) {
         return `thread-${item.no}`;
     }, []);
 
-    const renderItem = useCallback(({item}) => {
-        return <HoldItem items={MenuItems} closeOnTap actionParams={{
-            Reply: [board, item.no],
-            Copy: [board, item.no]
-        }}>
-            <TouchableOpacity
-                onPress={() => navigation.navigate('Thread', {
-                    board: board,
-                    thread: item.no
-                })}
-            ><View style={{flexDirection: 'column', flexWrap: 'wrap', width: '100%'}}>
-                <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
-                    <Text style={styles.threadId}>#{item.no}</Text>
-                    <Text style={styles.threadName}>{item.name}: </Text>
-                    <Text style={styles.threadSub}>{item.sub}</Text>
-                </View>
-                {processFiles(board, item, false)}
-                {processEmbed(board, item, false)}
-                {'com_nomarkup' in item ? <View style={{maxHeight: 150}}>
-                    <Text key={"post_text_" + item.no.toString()} style={[styles.threadCom]}>{formatCom(item.com_nomarkup)}</Text>
-                </View> : null}
-            </View>
-
-            </TouchableOpacity>
-        </HoldItem>
-    }, []);
 
     const separator = () => {
         return <View
@@ -684,6 +657,36 @@ function BoardScreen({route, navigation}) {
             }}
         />
     }
+
+    const renderItem = useCallback(({item}) => {
+        return <HoldItem
+            containerStyles={{
+                paddingBottom: 10
+            }}
+            items={MenuItems} closeOnTap actionParams={{
+            Reply: [board, item.no],
+            Copy: [board, item.no]
+        }}>
+            <TouchableOpacity
+                onPress={() => navigation.navigate('Thread', {
+                    board: board,
+                    thread: item.no
+                })}
+            ><View style={{flexDirection: 'column', flexWrap: 'wrap', width: '100%', backgroundColor: "#000000"}}>
+                <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
+                    <Text style={styles.threadId}>#{item.no}</Text>
+                    <Text style={styles.threadName}>{item.name}: </Text>
+                    <Text style={styles.threadSub}>{item.sub}</Text>
+                </View>
+                {processFiles(board, item, false)}
+                {processEmbed(board, item, false)}
+                {'com_nomarkup' in item ? <View style={{maxHeight: 150}}>
+                    <Text style={[styles.threadCom]}>{formatCom(item.com_nomarkup)}</Text>
+                </View> : null}
+            </View>
+            </TouchableOpacity>
+        </HoldItem>
+    }, []);
 
     return (
         <View style={styles.container}>
@@ -838,7 +841,11 @@ function ThreadScreen({route, navigation}) {
     }, []);
 
     const renderItem = useCallback(({item}) => {
-        return <HoldItem items={MenuItems} closeOnTap actionParams={{
+        return <HoldItem
+            containerStyles={{
+                paddingBottom: 10
+            }}
+            items={MenuItems} closeOnTap actionParams={{
             Reply: [board, thread, item.no],
             Copy: [board, thread, item.no]
         }}>
@@ -858,6 +865,7 @@ function ThreadScreen({route, navigation}) {
                 {processEmbed(board, item, true)}
                 {'com_nomarkup' in item ? processCom(item.com_nomarkup, flatlistRef, indexMap) : null}
             </View>
+
         </HoldItem>
     }, []);
 
