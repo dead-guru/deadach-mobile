@@ -57,6 +57,8 @@ enableScreens();
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
+const HOST = 'https://deada.ch';
+
 const translations = {
     en: {
         List: 'List',
@@ -128,7 +130,7 @@ export default function App() {
 const getCaptcha = () => {
     const captchaExtra = 'abcdefghijklmnopqrstuvwxyz1234567890';
 
-    return fetch('https://4.dead.guru/inc/captcha/entrypoint.php?mode=get&raw=1&extra=' + captchaExtra)
+    return fetch(HOST + '/inc/captcha/entrypoint.php?mode=get&raw=1&extra=' + captchaExtra)
         .then(response => response.json())
         .then(json => {
             return json;
@@ -150,7 +152,7 @@ function PostForm({route, navigation}) {
     const [captchaText, setCaptchaText] = useState('');
 
     const [captchaCookie, setCaptchaCookie] = useState('');
-    const [captchaImage, setCaptchaImage] = useState('https://4.dead.guru/static/clickme.gif');
+    const [captchaImage, setCaptchaImage] = useState(HOST + '/static/clickme.gif');
 
     const [post, setPost] = useState({
         board: board,
@@ -621,7 +623,7 @@ function BoardScreen({route, navigation}) {
         },
         {
             text: 'Copy', icon: 'link-outline', onPress: (board, thread) => {
-                Clipboard.setStringAsync('https://4.dead.guru/' + board + '/res/' + thread + '.html').then(() => {
+                Clipboard.setStringAsync(HOST + '/' + board + '/res/' + thread + '.html').then(() => {
                     Toast.show('Copied', {
                         duration: Toast.durations.SHORT,
                         position: Toast.positions.BOTTOM,
@@ -760,7 +762,7 @@ function ThreadScreen({route, navigation}) {
                 if ('tim' in res[post] && !['.webm', '.mp4'].includes(res[post].ext)) {
                     images.push({
                         name: res[post].filename,
-                        uri: 'https://4.dead.guru/' + board + '/src/' + res[post].tim + res[post].ext
+                        uri: HOST + '/' + board + '/src/' + res[post].tim + res[post].ext
                     });
                 }
                 if ('extra_files' in res[post]) {
@@ -768,7 +770,7 @@ function ThreadScreen({route, navigation}) {
                         if (!['.webm', '.mp4'].includes(res[post].extra_files[ex_file].ext)) {
                             images.push({
                                 name: res[post].extra_files[ex_file].filename,
-                                uri: 'https://4.dead.guru/' + board + '/src/' + res[post].extra_files[ex_file].tim + res[post].extra_files[ex_file].ext
+                                uri: HOST + '/' + board + '/src/' + res[post].extra_files[ex_file].tim + res[post].extra_files[ex_file].ext
                             });
                         }
                     }
@@ -813,7 +815,7 @@ function ThreadScreen({route, navigation}) {
         },
         {
             text: 'Copy', icon: 'link-outline', onPress: (board, thread, postId) => {
-                Clipboard.setStringAsync('https://4.dead.guru/' + board + '/res/' + thread + '.html#' + postId).then(() => {
+                Clipboard.setStringAsync(HOST + '/' + board + '/res/' + thread + '.html#' + postId).then(() => {
                     Toast.show('Copied', {
                         duration: Toast.durations.SHORT,
                         position: Toast.positions.BOTTOM,
@@ -994,7 +996,7 @@ const processFiles = (board, item, clickable, onSelect) => {
                     resizeMode={FastImage.resizeMode.cover}
                     key={'post_image_' + item.no.toString()}
                     source={{
-                        uri: 'https://4.dead.guru/' + board + '/thumb/' + firstImage.filename + '.png',
+                        uri: HOST + '/' + board + '/thumb/' + firstImage.filename + '.png',
                     }}
                 />)
 
@@ -1018,7 +1020,7 @@ const processFiles = (board, item, clickable, onSelect) => {
             }
 
             image.push(<TouchableOpacity
-                onPress={() => handleLinkPress('https://4.dead.guru/' + board + '/src/' + files[file].filename + files[file].extension)}
+                onPress={() => handleLinkPress(HOST + '/' + board + '/src/' + files[file].filename + files[file].extension)}
             ><View style={styles.threadFile}>
                 <Ionicons name='cloud-download-outline' size={24} color='#FFF' />
                 <Text style={{fontSize: 16, color: '#c1c1c1'}}> {files[file].filename}{files[file].extension}</Text>
