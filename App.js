@@ -50,8 +50,15 @@ import {HoldItem, HoldMenuProvider} from 'react-native-hold-menu';
 import {RootSiblingParent} from 'react-native-root-siblings';
 import Toast from 'react-native-root-toast';
 import {I18n} from 'i18n-js';
+import * as Progress from 'react-native-progress';
 
-import {getBoardThreadFromApi, getBoardThreadsWithBody, getBoarsFromApi, postViaApi} from './providers/deadach';
+import {
+    getBoardThreadFromApi,
+    getBoardThreadsWithBody,
+    getBoarsFromApi,
+    getCaptcha,
+    postViaApi
+} from './providers/deadach';
 
 enableScreens();
 const Stack = createNativeStackNavigator();
@@ -100,8 +107,6 @@ i18n.enableFallback = true;
 export default function App() {
     const scheme = useColorScheme();
 
-    console.log(getLocales()[0].languageCode)
-
     return (
         <RootSiblingParent>
             <HoldMenuProvider
@@ -125,21 +130,6 @@ export default function App() {
                     </Stack.Navigator>
                 </NavigationContainer></HoldMenuProvider></RootSiblingParent>
     );
-}
-
-const getCaptcha = () => {
-    const captchaExtra = 'abcdefghijklmnopqrstuvwxyz1234567890';
-
-    return fetch(HOST + '/inc/captcha/entrypoint.php?mode=get&raw=1&extra=' + captchaExtra)
-        .then(response => response.json())
-        .then(json => {
-            return json;
-        })
-        .catch(error => {
-            console.error(error);
-        });
-
-    //
 }
 
 function PostForm({route, navigation}) {
@@ -242,7 +232,6 @@ function PostForm({route, navigation}) {
 
     const pickImage = async () => {
         setIsDisabled(true);
-        // No permissions request is necessary for launching the image library
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.All,
             allowsMultipleSelection: true,
@@ -250,7 +239,6 @@ function PostForm({route, navigation}) {
         });
 
         if (!result.canceled) {
-
             if (result.assets.length > 3) {
                 Alert.alert('Error', 'Only 3 files available per post!');
                 return;
@@ -352,6 +340,8 @@ function PostForm({route, navigation}) {
                             onPress={pickImage}
                         />
                     </View>
+                    {isDisabled ?
+                        <Progress.Bar indeterminateAnimationDuration={700} color={'#FF7920'} indeterminate={true} useNativeDriver={true} borderWidth={0} borderRadius={0} width={null} /> : null}
                     {selectedImagesPreview(images)}
                     <View
                         style={{
@@ -430,7 +420,7 @@ function selectedImagesPreview(images) {
     let is = [];
     for (const i in images) {
 
-        let preview = <Image source={{uri: images[i].preview}} style={{
+        let preview = <Image key={"upl_file_" + i} source={{uri: images[i].preview}} style={{
             width: 100,
             height: 100,
         }} resizeMode={FastImage.resizeMode.cover} />
@@ -622,6 +612,14 @@ function BoardScreen({route, navigation}) {
             }
         },
         {
+            text: 'Reply', icon: 'arrow-redo-outline', onPress: (board, thread) => {
+                navigation.navigate('Form', {
+                    board: board,
+                    thread: thread
+                })
+            }
+        },
+        {
             text: 'Copy', icon: 'link-outline', onPress: (board, thread) => {
                 Clipboard.setStringAsync(HOST + '/' + board + '/res/' + thread + '.html').then(() => {
                     Toast.show('Copied', {
@@ -633,14 +631,6 @@ function BoardScreen({route, navigation}) {
                         delay: 0,
                     });
                 });
-            }
-        },
-        {
-            text: 'Reply', icon: 'copy-outline', onPress: (board, thread) => {
-                navigation.navigate('Form', {
-                    board: board,
-                    thread: thread
-                })
             }
         },
     ];
@@ -814,6 +804,15 @@ function ThreadScreen({route, navigation}) {
             }
         },
         {
+            text: 'Reply', icon: 'arrow-redo-outline', onPress: (board, thread, postId) => {
+                navigation.navigate('Form', {
+                    board: board,
+                    thread: thread,
+                    postId: postId
+                })
+            }
+        },
+        {
             text: 'Copy', icon: 'link-outline', onPress: (board, thread, postId) => {
                 Clipboard.setStringAsync(HOST + '/' + board + '/res/' + thread + '.html#' + postId).then(() => {
                     Toast.show('Copied', {
@@ -825,15 +824,6 @@ function ThreadScreen({route, navigation}) {
                         delay: 0,
                     });
                 });
-            }
-        },
-        {
-            text: 'Reply', icon: 'copy-outline', onPress: (board, thread, postId) => {
-                navigation.navigate('Form', {
-                    board: board,
-                    thread: thread,
-                    postId: postId
-                })
             }
         },
     ];
@@ -1068,7 +1058,7 @@ const HASHTAG_FORMATTER = (string, listRef, indexMap) => {
                     animated: true,
                     index: indexMap.indexOf(postId),
                     viewOffset: 20,
-                }) : console.log(listRef)}
+                }) : false}
             ><Text style={{color: '#ff7920', fontWeight: 'bold'}}>{v.replace(' ', '')}</Text></TouchableOpacity>
         } else {
             return <Text>{v}</Text>

@@ -1,7 +1,7 @@
-import {Alert} from "react-native";
+const HOST = 'https://deada.ch';
 
 export function getBoardThreadsFromApi(board) {
-    return fetch('https://4.dead.guru/' + board + '/threads.json' + '?random_number=' + new Date().getTime())
+    return fetch(HOST + '/' + board + '/threads.json' + '?random_number=' + new Date().getTime())
         .then(response => response.json())
         .then(json => {
             return json[0]['threads'];
@@ -12,7 +12,7 @@ export function getBoardThreadsFromApi(board) {
 }
 
 export function getBoardThreadFromApi(board, thread) {
-    return fetch('https://4.dead.guru/' + board + '/res/' + thread + '.json' + '?random_number=' + new Date().getTime())
+    return fetch(HOST + '/' + board + '/res/' + thread + '.json' + '?random_number=' + new Date().getTime())
         .then(response => response.json())
         .then(json => {
             return json['posts'];
@@ -23,7 +23,7 @@ export function getBoardThreadFromApi(board, thread) {
 }
 
 export function getBoarsFromApi() {
-    return fetch('https://4.dead.guru/boards.php')
+    return fetch(HOST + '/boards.php')
         .then(response => response.json())
         .then(json => {
             return json;
@@ -38,7 +38,7 @@ export function getBoardThreadsWithBody(board, page) {
         page = '0'
     }
 
-    let uri = 'https://4.dead.guru/' + board + '/threads.json' + '?random_number=' + new Date().getTime();
+    let uri = HOST + '/' + board + '/threads.json' + '?random_number=' + new Date().getTime();
 
     return new Promise((resolve, reject) => {
         fetch(uri)
@@ -102,15 +102,33 @@ export async function postViaApi(post) {
     };
 
     return await fetch(
-        'https://4.dead.guru/post/', requestOptions)
+        HOST + '/post/', requestOptions)
         .then(async response => {
             let resp = await response.text();
             try {
                 return JSON.parse(resp)
             } catch (e) { //TODO: handle errors
-                Alert.alert('Application error!', e.toString().replace(/<[^>]+>/g, ' '))
+                console.log(resp)
+                return {'error': 'Parse JSON error =('};
             }
-        }).catch(error => {
+        }).catch(e => {
+            console.error(e);
+            return {'error': e.toString().replace(/<[^>]+>/g, ' ')};
+        });
+}
+
+
+export async function getCaptcha() {
+    const captchaExtra = 'abcdefghijklmnopqrstuvwxyz1234567890';
+
+    return fetch(HOST + '/inc/captcha/entrypoint.php?mode=get&raw=1&extra=' + captchaExtra)
+        .then(response => response.json())
+        .then(json => {
+            return json;
+        })
+        .catch(error => {
             console.error(error);
         });
+
+    //
 }
