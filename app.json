@@ -34,7 +34,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "versionCode": 9,
+      "versionCode": 10,
       "package": "com.assada.deadach"
     },
     "web": {
