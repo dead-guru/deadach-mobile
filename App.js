@@ -11,7 +11,6 @@ import {
     SafeAreaView,
     ScrollView,
     SectionList,
-    StyleSheet,
     Text,
     TextInput,
     TouchableHighlight,
@@ -65,6 +64,12 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const HOST = 'https://deada.ch';
+
+const separator = () => {
+    return <View
+        style={styles.separator}
+    />
+}
 
 const translations = {
     en: {
@@ -208,7 +213,7 @@ function PostForm({route, navigation}) {
             if ('error' in res) {
                 Alert.alert('Api Error!', res.error.replace(/<[^>]+>/g, ' '))
                 setIsDisabledPost(false);
-                return;
+                return false;
             }
 
             setIsDisabledPost(false);
@@ -224,10 +229,12 @@ function PostForm({route, navigation}) {
                 rf: Math.random(),
                 thread: post.thread === null ? res.id : post.thread
             });
+
+            return true;
         } else {
             setIsDisabledPost(false);
+            return false;
         }
-
     }
 
     const pickImage = async () => {
@@ -299,28 +306,19 @@ function PostForm({route, navigation}) {
     const height = useHeaderHeight()
 
     return (
-        <SafeAreaView style={{
-            marginHorizontal: 20,
-            height: "100%",
-        }}>
+        <SafeAreaView style={styles.postForm.container}>
             <KeyboardAvoidingView
-                style={{
-                    flex: 1,
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                }} behavior={Platform.select({
-                android: undefined,
-                ios: 'padding'
-            })} enabled keyboardVerticalOffset={height + 47}>
-                <ScrollView keyboardShouldPersistTaps={'always'} style={{width: "100%"}}>
+                style={styles.postForm.keyboardContainer}
+                behavior={Platform.select({
+                    android: undefined,
+                    ios: 'padding'
+                })}
+                enabled
+                keyboardVerticalOffset={height + 47}
+            >
+                <ScrollView keyboardShouldPersistTaps={'always'} style={styles.postForm.scrollContainer}>
                     {thread === null ? <View
-                        style={{
-                            backgroundColor: '#fff',
-                            borderBottomColor: '#000000',
-                            borderBottomWidth: 1,
-                            marginBottom: 0,
-                            marginTop: 10
-                        }}>
+                        style={styles.postForm.input.subject.container}>
                         <TextInput
                             clearButtonMode={'while-editing'}
                             editable
@@ -330,11 +328,11 @@ function PostForm({route, navigation}) {
                             value={subject}
                             onChangeText={setSubject}
                             placeholder={i18n.t('Subject')}
-                            style={{padding: 10, backgroundColor: '#131313', color: '#ffffff', borderWidth: 1,}}
+                            style={styles.postForm.input.subject.input}
                         /></View> : null}
-                    <View style={{backgroundColor: '#333333', marginVertical: 10}}>
+                    <View style={styles.postForm.button.files.container}>
                         <Button
-                            style={{color: '#fff'}}
+                            style={styles.postForm.button.files.button}
                             title={isDisabled ? "Loading..." : i18n.t('AddFiles')}
                             disabled={isDisabled}
                             onPress={pickImage}
@@ -344,12 +342,7 @@ function PostForm({route, navigation}) {
                         <Progress.Bar indeterminateAnimationDuration={700} color={'#FF7920'} indeterminate={true} useNativeDriver={true} borderWidth={0} borderRadius={0} width={null} /> : null}
                     {selectedImagesPreview(images)}
                     <View
-                        style={{
-                            backgroundColor: '#fff',
-                            borderBottomColor: '#000000',
-                            borderBottomWidth: 1,
-                            marginBottom: 15,
-                        }}>
+                        style={styles.postForm.input.post.container}>
                         <TextInput
                             autoFocus={thread !== null}
                             editable
@@ -360,31 +353,18 @@ function PostForm({route, navigation}) {
                             placeholderTextColor="#6B6B6B"
                             onChangeText={setBody}
                             placeholder={i18n.t("Post")}
-                            style={{
-                                padding: 10,
-                                height: 300,
-                                backgroundColor: '#131313', color: '#ffffff', borderWidth: 1,
-                            }}
+                            style={styles.postForm.input.post.input}
                         /></View>
                     {thread === null ?
                         <View>
                             <TouchableHighlight onPress={generateCaptcha}>
                                 <View>
-                                    <Text style={{color: '#6B6B6B'}}>{i18n.t('ClickToReload')}</Text>
-                                    <Image style={{
-                                        width: 250,
-                                        height: 80,
-                                    }} source={{uri: captchaImage}} />
+                                    <Text style={styles.postForm.captcha.hintText}>{i18n.t('ClickToReload')}</Text>
+                                    <Image style={styles.postForm.captcha.image} source={{uri: captchaImage}} />
                                 </View>
                             </TouchableHighlight>
                             <View
-                                style={{
-                                    backgroundColor: '#fff',
-                                    borderBottomColor: '#000000',
-                                    borderBottomWidth: 1,
-                                    marginBottom: 0,
-                                    marginTop: 10
-                                }}>
+                                style={styles.postForm.input.subject.container}>
                                 <TextInput
                                     clearButtonMode={'while-editing'}
                                     editable
@@ -394,19 +374,20 @@ function PostForm({route, navigation}) {
                                     value={captchaText}
                                     onChangeText={setCaptchaText}
                                     placeholder={i18n.t('Captcha')}
-                                    style={{padding: 10, backgroundColor: '#131313', color: '#ffffff', borderWidth: 1,}}
+                                    style={styles.postForm.input.subject.input}
                                 /></View>
                         </View>
                         : null}
-                    <View style={{backgroundColor: '#313131'}}>
+                    <View style={styles.postForm.button.submit.container}>
                         <Button
-                            style={{color: '#fff', fontWeight: 'bold'}}
+                            style={styles.postForm.button.submit.button}
                             color={'#ff7920'}
                             title={isDisabledPost ? "Posting..." : i18n.t('Create')}
                             disabled={isDisabledPost}
-                            onPress={() => {
-                                postHandle(post)
-                            }
+                            onPress={
+                                () => {
+                                    postHandle(post)
+                                }
                             }
                         />
                     </View>
@@ -419,32 +400,22 @@ function PostForm({route, navigation}) {
 function selectedImagesPreview(images) {
     let is = [];
     for (const i in images) {
-
-        let preview = <Image key={"upl_file_" + i} source={{uri: images[i].preview}} style={{
-            width: 100,
-            height: 100,
-        }} resizeMode={FastImage.resizeMode.cover} />
+        let preview = <Image
+            key={"upl_file_" + i}
+            source={{uri: images[i].preview}}
+            style={styles.filePreview.image.image}
+            resizeMode={FastImage.resizeMode.cover} />
 
         if (images[i].type === 'video') {
-            preview = <View style={{
-                borderRadius: 5,
-                borderWidth: 1,
-                borderColor: '#ffffff',
-                borderStyle: 'dotted'
-            }}>
-                <Ionicons name="videocam-outline" color="#ffffff" size={25} style={{
-                    position: 'absolute',
-                    top: 2,
-                    left: 5,
-                    zIndex: 999
-                }} />
+            preview = <View style={styles.filePreview.video.container}>
+                <Ionicons name="videocam-outline" color="#ffffff" size={25} style={styles.filePreview.video.icon} />
                 {preview}
             </View>
         }
-        is.push(<View style={{marginRight: 5}}>{preview}</View>)
+        is.push(<View style={styles.filePreview.fileContainer}>{preview}</View>)
     }
 
-    return is.length > 0 ? <View style={{flexDirection: 'row', flexWrap: 'wrap', marginBottom: 10}}>{is}</View> : null
+    return is.length > 0 ? <View style={styles.filePreview.container}>{is}</View> : null
 }
 
 function Home({navigation}) {
@@ -517,12 +488,12 @@ function BoardsScreen({navigation}) {
 
     return (
         <View style={styles.container}>
-            <Text style={{fontSize: 90, marginTop: 30, fontWeight: "bold", color: '#ffffff'}}>Deadach</Text>
+            <Text style={styles.headTitleText}>Deadach</Text>
             <SectionList
                 contentContainerStyle={{paddingBottom: 100}}
                 ListFooterComponent={
-                    <View style={{height: 160, justifyContent: 'center', alignItems: 'center'}}>
-                        <Text style={{color: '#848484'}}>{i18n.t('End')}</Text>
+                    <View style={styles.footerContainer}>
+                        <Text style={styles.footerText}>{i18n.t('End')}</Text>
                     </View>
                 }
                 sections={apiResponse}
@@ -537,15 +508,7 @@ function BoardsScreen({navigation}) {
                     <Text style={styles.item}>{item.title.replace(/<[^>]+>/g, '')}</Text>
                 </TouchableOpacity>}
                 renderSectionHeader={({section}) => (
-                    <View style={{
-                        paddingTop: 2,
-                        paddingLeft: 10,
-                        paddingRight: 10,
-                        backgroundColor: '#000000',
-                        paddingBottom: 2,
-                        flexDirection: 'row',
-                        flexWrap: 'wrap',
-                    }}>
+                    <View style={styles.sectionHeaderContainer}>
                         {/*<Ionicons name='radio-button-off-outline' size={18} color='#FF7920' />*/}
                         <Text style={styles.sectionHeader}> {section.title.replace(/<[^>]+>/g, '')}</Text>
                     </View>
@@ -566,8 +529,8 @@ function BoardScreen({route, navigation}) {
         board = route.params.board;
     } else {
         return (
-            <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-                <Text style={{color: '#848484'}}>{i18n.t('BoardFirst')}</Text>
+            <View style={styles.notContainer}>
+                <Text style={styles.notText}>{i18n.t('BoardFirst')}</Text>
             </View>
         );
     }
@@ -639,17 +602,6 @@ function BoardScreen({route, navigation}) {
         return `thread-${item.no}`;
     }, []);
 
-
-    const separator = () => {
-        return <View
-            style={{
-                width: '100%',
-                borderBottomColor: '#4f4f4f',
-                borderBottomWidth: StyleSheet.hairlineWidth,
-            }}
-        />
-    }
-
     const renderItem = useCallback(({item}) => {
         return <HoldItem
             containerStyles={{
@@ -664,15 +616,15 @@ function BoardScreen({route, navigation}) {
                     board: board,
                     thread: item.no
                 })}
-            ><View style={{flexDirection: 'column', flexWrap: 'wrap', width: '100%', backgroundColor: "#000000"}}>
-                <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
+            ><View style={styles.thread}>
+                <View style={styles.threadHead}>
                     <Text style={styles.threadId}>#{item.no}</Text>
-                    <Text style={styles.threadName}>{item.name}: </Text>
+                    <Text style={styles.threadName}>{item.name}</Text>
                     <Text style={styles.threadSub}>{item.sub}</Text>
                 </View>
                 {processFiles(board, item, false)}
                 {processEmbed(board, item, false)}
-                {'com_nomarkup' in item ? <View style={{maxHeight: 150}}>
+                {'com_nomarkup' in item ? <View style={styles.threadComContainer}>
                     <Text style={[styles.threadCom]}>{formatCom(item.com_nomarkup)}</Text>
                 </View> : null}
             </View>
@@ -703,8 +655,8 @@ function BoardScreen({route, navigation}) {
                     }} />
                 }
                 ListFooterComponent={
-                    <View style={{height: 160, justifyContent: 'center', alignItems: 'center'}}>
-                        <Text style={{color: '#848484'}}>{i18n.t('End')}</Text>
+                    <View style={styles.footerContainer}>
+                        <Text style={styles.footerText}>{i18n.t('End')}</Text>
                         {refreshing ? <ActivityIndicator /> : null}
                     </View>
                 }
@@ -774,7 +726,7 @@ function ThreadScreen({route, navigation}) {
                     return <TouchableHighlight onPress={() => {
                         navigation.navigate('Form', {board: board, thread: thread})
                     }}>
-                        <View style={{paddingRight: 10}}>
+                        <View style={styles.headerActionContainer}>
                             <Ionicons name='create' size={24} color='#FF7920' />
                         </View>
                     </TouchableHighlight>
@@ -841,13 +793,8 @@ function ThreadScreen({route, navigation}) {
             Reply: [board, thread, item.no],
             Copy: [board, thread, item.no]
         }}>
-            <View style={{
-                flexDirection: 'column',
-                flexWrap: 'wrap',
-                width: '100%',
-                backgroundColor: '#000000'
-            }}>
-                <View style={{flexDirection: 'row', flexWrap: 'wrap', width: '100%'}}>
+            <View style={styles.thread}>
+                <View style={styles.threadHead}>
                     <Text style={styles.threadId}>#{item.no}</Text>
                     <Text style={styles.threadName}>{item.name}: </Text>
                     <Text style={styles.threadSub}>{item.sub}</Text>
@@ -860,16 +807,6 @@ function ThreadScreen({route, navigation}) {
 
         </HoldItem>
     }, []);
-
-    const separator = () => {
-        return <View
-            style={{
-                width: '100%',
-                borderBottomColor: '#4f4f4f',
-                borderBottomWidth: StyleSheet.hairlineWidth,
-            }}
-        />
-    };
 
     return (
         <View style={styles.container}>
@@ -897,15 +834,11 @@ function ThreadScreen({route, navigation}) {
                             setRefreshing(true);
                             getData();
                         }}>
-                            <View style={{height: 160, justifyContent: 'center', alignItems: 'center'}}>
-                                <Text style={{color: '#848484'}}>{i18n.t('End')}</Text>
-                                <View style={{
-                                    flexDirection: 'row',
-                                    flexWrap: 'wrap',
-                                    alignSelf: 'center', marginTop: 10, justifyContent: 'center', alignItems: 'center'
-                                }}>
+                            <View style={styles.footerContainer}>
+                                <Text style={styles.footerText}>{i18n.t('End')}</Text>
+                                <View style={styles.footerActionContainer}>
                                     <Ionicons name='refresh' size={18} color='#53738e' />
-                                    <Text style={{color: '#53738e'}}> Check updates</Text>
+                                    <Text style={styles.footerActionText}> Check updates</Text>
                                 </View>
                             </View></TouchableHighlight>
                         {refreshing ? <ActivityIndicator /> : null}
@@ -924,7 +857,7 @@ const processCom = (com, flatListRef, indexMap) => {
     }
 
     return <View style={{maxHeight: 9000}}>
-        <Hyperlink linkStyle={{color: '#ff7920'}} onPress={(url, text) => handleLinkPress(url)}>
+        <Hyperlink linkStyle={styles.link} onPress={(url, text) => handleLinkPress(url)}>
             <Text style={[styles.threadCom]}>{formatCom(com, flatListRef, indexMap)}</Text>
         </Hyperlink>
     </View>
@@ -991,16 +924,16 @@ const processFiles = (board, item, clickable, onSelect) => {
                 />)
 
             if (clickable) {
-                image = [<TouchableOpacity
-                    key={'post_image_c_' + item.no.toString()}
-                    onPress={() => onSelect(item.images, 0)}
-                >{image[0]}</TouchableOpacity>,
-                    <View key={'post_image_meta_' + item.no.toString()} style={{
-                        flexDirection: 'row',
-                        flexWrap: 'wrap',
-                        alignSelf: 'flex-start',
-                    }}><Text key={'post_image_p_' + item.no.toString()} style={[styles.threadImagesCount]}>1/{imagesCount}</Text>
-                        <Text key={'post_image_t_' + item.no.toString()} style={[styles.threadImagesName]}>{firstImage.original}{firstImage.extension}</Text></View>]
+                image = [
+                    <TouchableOpacity
+                        key={'post_image_c_' + item.no.toString()}
+                        onPress={() => onSelect(item.images, 0)}
+                    >{image[0]}</TouchableOpacity>,
+                    <View key={'post_image_meta_' + item.no.toString()} style={styles.threadImageContainer}>
+                        <Text key={'post_image_p_' + item.no.toString()} style={[styles.threadImagesCount]}>1/{imagesCount}</Text>
+                        <Text key={'post_image_t_' + item.no.toString()} style={[styles.threadImagesName]}>{firstImage.original}{firstImage.extension}</Text>
+                    </View>
+                ]
             }
         }
 
@@ -1009,12 +942,15 @@ const processFiles = (board, item, clickable, onSelect) => {
                 continue;
             }
 
-            image.push(<TouchableOpacity
-                onPress={() => handleLinkPress(HOST + '/' + board + '/src/' + files[file].filename + files[file].extension)}
-            ><View style={styles.threadFile}>
-                <Ionicons name='cloud-download-outline' size={24} color='#FFF' />
-                <Text style={{fontSize: 16, color: '#c1c1c1'}}> {files[file].filename}{files[file].extension}</Text>
-            </View></TouchableOpacity>)
+            image.push(
+                <TouchableOpacity
+                    onPress={() => handleLinkPress(HOST + '/' + board + '/src/' + files[file].filename + files[file].extension)}
+                >
+                    <View style={styles.threadFile}>
+                        <Ionicons name='cloud-download-outline' size={24} color="#FFFFFF" />
+                        <Text style={styles.fileNameText}> {files[file].filename}{files[file].extension}</Text>
+                    </View>
+                </TouchableOpacity>)
         }
     }
 
@@ -1027,7 +963,8 @@ const handleLinkPress = async (url) => {
     if (supported) {
         Linking.openURL(url);
     } else {
-        Alert.alert(`Don't know how to open this URL: ${url}`);
+        Linking.openURL(url); //LOL
+        //Alert.alert(`Don't know how to open this URL: ${url}`); //TODO: Request permission
     }
 };
 
@@ -1049,23 +986,6 @@ function detectYoutube(str) {
     return res.length > 0 ? res[1] : false;
 }
 
-const HASHTAG_FORMATTER = (string, listRef, indexMap) => {
-    return string.split(/(>>[0-9]*)\s/gi).filter(Boolean).map((v, i) => {
-        if (v.includes('>>')) {
-            const postId = parseInt(v.replace(' ', '').replace('>>', ''));
-            return <TouchableOpacity
-                onPress={() => indexMap.indexOf(postId) > -1 && typeof listRef !== 'undefined' ? listRef.current.scrollToIndex({
-                    animated: true,
-                    index: indexMap.indexOf(postId),
-                    viewOffset: 20,
-                }) : false}
-            ><Text style={{color: '#ff7920', fontWeight: 'bold'}}>{v.replace(' ', '')}</Text></TouchableOpacity>
-        } else {
-            return <Text>{v}</Text>
-        }
-    })
-};
-
 const NEW_HASHTAG_FORMATTER = (string, listRef, indexMap) => {
 
     //cit
@@ -1077,42 +997,37 @@ const NEW_HASHTAG_FORMATTER = (string, listRef, indexMap) => {
                 index: indexMap.indexOf(postId),
                 viewOffset: 20,
             }) : null}
-        ><Text style={{color: '#ff7920', fontWeight: 'bold'}}>{match}</Text></TouchableOpacity>
+        ><Text style={styles.format.cit}>{match}</Text></TouchableOpacity>
     });
 
     //quote
     NewString = reactStringReplace(NewString, /(>.*)/gi, (match, i) => {
-        return <Text style={{color: '#68a454'}}>{match}</Text>
+        return <Text style={styles.format.quote}>{match}</Text>
     })
 
     //bold
     NewString = reactStringReplace(NewString, /\[b\](.*)\[\/b\]/gi, (match, i) => {
-        return <Text style={{fontWeight: "bold"}}>{match}</Text>
+        return <Text style={styles.format.bold}>{match}</Text>
     })
     //italic
     NewString = reactStringReplace(NewString, /\[i\](.*)\[\/i\]/gi, (match, i) => {
-        return <Text style={{fontStyle: 'italic'}}>{match}</Text>
+        return <Text style={styles.format.italic}>{match}</Text>
     })
     //underline
     NewString = reactStringReplace(NewString, /__(.*)__/gi, (match, i) => {
-        return <Text style={{textDecorationLine: 'underline'}}>{match}</Text>
+        return <Text style={styles.format.underline}>{match}</Text>
     })
     //strike
     NewString = reactStringReplace(NewString, /~~(.*)~~/gi, (match, i) => {
-        return <Text style={{textDecorationLine: 'line-through', textDecorationStyle: 'solid'}}>{match}</Text>
+        return <Text style={styles.format.strike}>{match}</Text>
     })
     //head
     NewString = reactStringReplace(NewString, /==(.*)==/gi, (match, i) => {
-        return <Text style={{
-            color: '#ff7920',
-            fontWeight: 'bold',
-            fontSize: 18,
-            textTransform: 'uppercase'
-        }}>{match}</Text>
+        return <Text style={styles.format.head}>{match}</Text>
     })
     //spoiler
     NewString = reactStringReplace(NewString, /\*\*(.*)\*\*/gi, (match, i) => {
-        return <Text style={{color: '#282828', fontStyle: 'italic', textDecorationStyle: 'double'}}>{match}</Text>
+        return <Text style={styles.format.spoiler}>{match}</Text>
     })
 
     return NewString
