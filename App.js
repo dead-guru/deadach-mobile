@@ -34,7 +34,6 @@ import ImageView from 'react-native-image-viewing'
 
 import {FlashList} from "@shopify/flash-list"
 
-import FastImage from 'react-native-fast-image' //Only on native client!
 import reactStringReplace from 'react-string-replace';
 
 import * as FileSystem from 'expo-file-system';
@@ -891,7 +890,7 @@ const selectedImagesPreview = (images) => {
             key={"upl_file_" + i}
             source={{uri: images[i].preview}}
             style={styles.filePreview.image.image}
-            resizeMode={FastImage.resizeMode.cover} />
+            resizeMode={"cover"} />
 
         if (images[i].type === 'video') {
             preview = <View style={styles.filePreview.video.container}>
@@ -921,7 +920,7 @@ const processEmbed = (board, item, clickable) => {
     if ('embed' in item) {
         if (detectYoutube(item.embed)) { //TODO: vimeo, vocaro
             let image = <Image
-                resizeMode={FastImage.resizeMode.cover}
+                resizeMode={"cover"}
                 style={styles.postImage}
                 source={{
                     uri: 'https://img.youtube.com/vi/' + detectYoutube(item.embed) + '/0.jpg',
@@ -970,7 +969,7 @@ const processFiles = (board, item, clickable, onSelect) => {
             image.push(
                 <Image
                     style={styles.postImage}
-                    resizeMode={FastImage.resizeMode.cover}
+                    resizeMode={"cover"}
                     key={'post_image_' + item.no.toString()}
                     source={{
                         uri: HOST + '/' + board + '/thumb/' + firstImage.filename + '.png',
