@@ -6,7 +6,9 @@ import {
     Button,
     Image,
     KeyboardAvoidingView,
+    Modal,
     Platform,
+    Pressable,
     RefreshControl,
     SafeAreaView,
     ScrollView,
@@ -40,6 +42,8 @@ import * as ImagePicker from 'expo-image-picker';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import * as Clipboard from 'expo-clipboard';
 import {getLocales} from 'expo-localization';
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import * as mime from 'mime';
 
@@ -397,27 +401,6 @@ function PostForm({route, navigation}) {
     );
 }
 
-function selectedImagesPreview(images) {
-    let is = [];
-    for (const i in images) {
-        let preview = <Image
-            key={"upl_file_" + i}
-            source={{uri: images[i].preview}}
-            style={styles.filePreview.image.image}
-            resizeMode={FastImage.resizeMode.cover} />
-
-        if (images[i].type === 'video') {
-            preview = <View style={styles.filePreview.video.container}>
-                <Ionicons name="videocam-outline" color="#ffffff" size={25} style={styles.filePreview.video.icon} />
-                {preview}
-            </View>
-        }
-        is.push(<View style={styles.filePreview.fileContainer}>{preview}</View>)
-    }
-
-    return is.length > 0 ? <View style={styles.filePreview.container}>{is}</View> : null
-}
-
 function Home({navigation}) {
     return (
         <Tab.Navigator
@@ -472,6 +455,31 @@ function Home({navigation}) {
 function BoardsScreen({navigation}) {
     const [apiResponse, setApiResponse] = useState([]);
 
+    const [modalVisible, setModalVisible] = useState(false);
+
+    const storeData = async (value) => {
+        try {
+            await AsyncStorage.setItem('@terms', value)
+            console.log("store:" + value)
+        } catch (e) {
+            Alert.alert('Error', e.toString());
+        }
+    }
+
+    const getTermsModal = async () => {
+        try {
+            const value = await AsyncStorage.getItem('@terms')
+            console.log(value)
+            if (value !== null) {
+                setModalVisible(!value)
+            } else {
+                setModalVisible(true)
+            }
+        } catch (e) {
+            Alert.alert('Error!', e.toString());
+        }
+    }
+
     useMemo(() => {
         let ss = [];
         getBoarsFromApi().then((res) => {
@@ -483,6 +491,7 @@ function BoardsScreen({navigation}) {
                 ss.push({title: key, data: b});
             }
             setApiResponse(ss);
+            getTermsModal();
         });
     }, [])
 
@@ -516,9 +525,33 @@ function BoardsScreen({navigation}) {
                 )}
                 keyExtractor={item => `basicListEntry-${item.board}`}
             />
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => {
+                    setModalVisible(!modalVisible);
+                    storeData('true'); //TODO: ???
+                }}>
+                <View style={styles.centeredView}>
+                    <View style={styles.modalView}>
+                        <Text style={styles.modalText}>Agree to terms and user policy!</Text>
+                        <Pressable onPress={() => {
+                            Linking.openURL('https://deada.ch/rules.html');
+                        }}><Text style={styles.modalLinks}>View terms and policy</Text></Pressable>
+                        <Pressable
+                            style={[styles.button, styles.buttonClose]}
+                            onPress={() => {
+                                setModalVisible(!modalVisible);
+                                storeData('true');
+                            }}>
+                            <Text style={styles.textStyle}>Accept Terms and Policy</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
-
 }
 
 function BoardScreen({route, navigation}) {
@@ -851,6 +884,27 @@ function ThreadScreen({route, navigation}) {
     );
 }
 
+const selectedImagesPreview = (images) => {
+    let is = [];
+    for (const i in images) {
+        let preview = <Image
+            key={"upl_file_" + i}
+            source={{uri: images[i].preview}}
+            style={styles.filePreview.image.image}
+            resizeMode={FastImage.resizeMode.cover} />
+
+        if (images[i].type === 'video') {
+            preview = <View style={styles.filePreview.video.container}>
+                <Ionicons name="videocam-outline" color="#ffffff" size={25} style={styles.filePreview.video.icon} />
+                {preview}
+            </View>
+        }
+        is.push(<View style={styles.filePreview.fileContainer}>{preview}</View>)
+    }
+
+    return is.length > 0 ? <View style={styles.filePreview.container}>{is}</View> : null
+}
+
 const processCom = (com, flatListRef, indexMap) => {
     if (com.length > 500) {
         //TODO: Post too long click to expand
@@ -968,7 +1022,7 @@ const handleLinkPress = async (url) => {
     }
 };
 
-function detectYoutube(str) {
+const detectYoutube = (str) => {
     const regex = /data-video="([a-zA-Z0-9\-_]{10,11})"/gm;
 
     let m;

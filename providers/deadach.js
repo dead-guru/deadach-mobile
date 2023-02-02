@@ -107,16 +107,13 @@ export async function postViaApi(post) {
             let resp = await response.text();
             try {
                 return JSON.parse(resp)
-            } catch (e) { //TODO: handle errors
-                console.log(resp)
+            } catch (e) {
                 return {'error': 'Parse JSON error =('};
             }
         }).catch(e => {
-            console.error(e);
             return {'error': e.toString().replace(/<[^>]+>/g, ' ')};
         });
 }
-
 
 export async function getCaptcha() {
     const captchaExtra = 'abcdefghijklmnopqrstuvwxyz1234567890';
