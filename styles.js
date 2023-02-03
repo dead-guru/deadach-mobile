@@ -10,7 +10,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         width: "100%",
-        height: "100%"
+        height: "100%",
         // backgroundColor: '#fff',
     },
     sectionHeader: {
@@ -37,16 +37,26 @@ const styles = StyleSheet.create({
         height: 44,
     },
     thread: {
-        flexDirection: 'column', flexWrap: 'wrap', width: '100%', backgroundColor: "#000000"
+        flexDirection: 'column',
+        flexWrap: 'wrap',
+        width: '100%',
+        backgroundColor: "#000000",
+        borderStyle: 'dashed',
+        borderColor: '#ffffff',
+        borderWidth: 0
     },
     threadCom: {
         color: '#fff',
         backgroundColor: '#000',
-        padding: 10,
         fontSize: 14,
+        width: 'auto'
     },
     threadComContainer: {
-        maxHeight: 150
+        maxHeight: 150,
+        width: '100%',
+        marginLeft: 10,
+        marginRight: 10,
+        marginTop: 10
     },
     threadImagesCount: {
         color: '#04b8f1',
@@ -67,7 +77,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         alignSelf: 'flex-start',
-        marginBottom: 10,
     },
     threadName: {
         color: '#FF7920',
@@ -79,6 +88,17 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: "bold"
     },
+    threadBoard: {
+        color: '#bc802f',
+        fontSize: 12,
+        fontWeight: "bold",
+        marginRight: 5
+    },
+    threadAction: {
+        color: '#a9a9a9',
+        fontSize: 12,
+        fontStyle: "italic",
+    },
     threadSub: {
         color: '#a9a9a9',
         fontSize: 12,
@@ -88,21 +108,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         padding: 10,
-        width: "100%"
-    },
-    itemThread: {
-        color: '#fff',
-        padding: 10,
-        fontSize: 18,
-        height: 100,
-        borderBottomColor: '#646464',
-        borderBottomWidth: 5,
+        paddingBottom: 0,
+        width: "100%",
+        backgroundColor: "#000000",
     },
     postImage: {
         height: 200,
         width: '100%'
     },
-
     root: {
         backgroundColor: "#00000077"
     },
@@ -134,6 +147,7 @@ const styles = StyleSheet.create({
         color: "#FFF"
     },
     separator: {
+        height: 1,
         width: '100%',
         borderBottomColor: '#4f4f4f',
         borderBottomWidth: StyleSheet.hairlineWidth,
@@ -171,6 +185,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         alignSelf: 'flex-start',
+        backgroundColor: "#000",
+        marginLeft: 10
     },
     fileNameText: {
         fontSize: 16,

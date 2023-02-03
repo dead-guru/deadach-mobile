@@ -129,3 +129,15 @@ export async function getCaptcha() {
 
     //
 }
+
+export async function getLatest() {
+    return fetch(HOST + '/recent.json' + '?random_number=' + new Date().getTime())
+        .then(response => response.json())
+        .then(json => {
+            return json;
+        })
+        .catch(error => {
+            console.error(error);
+            return [];
+        });
+}

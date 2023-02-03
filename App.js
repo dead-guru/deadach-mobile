@@ -59,6 +59,7 @@ import {
     getBoardThreadsWithBody,
     getBoarsFromApi,
     getCaptcha,
+    getLatest,
     postViaApi
 } from './providers/deadach';
 
@@ -88,6 +89,7 @@ const translations = {
         PostFor: 'Post for',
         CommentFor: 'Comment for',
         Back: 'Back',
+        Latest: 'Latest',
         BoardFirst: 'Please, select board first!',
     },
     uk: {
@@ -101,6 +103,7 @@ const translations = {
         ClickToReload: 'Натистніть на картинку для оновлення',
         AddFiles: 'Додати файли',
         PostFor: 'Пост в',
+        Latest: 'Свіже',
         CommentFor: 'Комментар в',
         Back: 'Назад',
         BoardFirst: 'Спочатку оберіть дошку зі списку!',
@@ -426,6 +429,8 @@ function Home({navigation}) {
                         iconName = focused ? 'ios-list' : 'ios-list-outline';
                     } else if (route.name === 'Board') {
                         iconName = focused ? 'document-text' : 'document-text-outline';
+                    } else if (route.name === 'Latest') {
+                        iconName = focused ? 'newspaper' : 'newspaper-outline';
                     }
 
                     return <Ionicons name={iconName} size={size} color={color} />;
@@ -447,7 +452,91 @@ function Home({navigation}) {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 },
             })} />
+            <Tab.Screen name="Latest" options={{
+                title: i18n.t('Latest')
+            }} component={LatestScreen} listeners={() => ({
+                tabPress: () => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                },
+            })} />
         </Tab.Navigator>
+    );
+}
+
+function LatestScreen({navigation}) {
+
+    const [apiResponse, setApiResponse] = useState([]);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const getData = () => {
+        setRefreshing(true)
+        getLatest().then((response) => {
+            setApiResponse(response['recent_posts']);
+            setRefreshing(false);
+        });
+    }
+
+    useEffect(() => {
+        getData();
+    }, []);
+
+    const keyExtractor = (item) => `latest-${item.id}-${item.board}`;
+
+    const renderItem = ({item}) => {
+        return <TouchableOpacity
+            onPress={() => navigation.navigate('Thread', {
+                board: item.board,
+                thread: item.thread === null ? item.id : item.thread,
+                down: item.id
+            })}
+        ><View style={[styles.thread, {paddingBottom: 10}]}>
+            <View style={styles.threadHead}>
+                <Text style={styles.threadAction}>{item.thread === null ? 'Thread' : 'Post'} in </Text>
+                <Text style={styles.threadBoard}>/{item.board}/</Text>
+                <Text style={styles.threadId}>#{item.id}</Text>
+                <Text style={styles.threadName}>{item.name}</Text>
+                <Text style={styles.threadSub}>{item.subject}</Text>
+            </View>
+            {processEmbed(item, false)}
+            {'files' in item && item['files'] !== null && item['files'].length > 0 && item['files'][0]['extension'] !== 'webm' && item['files'][0]['extension'] !== 'mp4' ?
+                <Image resizeMode={"cover"}
+                       style={styles.postImage} source={{uri: HOST + '/' + item['files'][0]['file_path']}} /> : null}
+            {'files' in item && item['files'] !== null && item['files'].length > 0 && (item['files'][0]['extension'] === 'webm' || item['files'][0]['extension'] === 'mp4') ?
+                <View style={styles.threadFile}>
+                    <Ionicons name='cloud-download-outline' size={24} color="#FFFFFF" />
+                    <Text style={styles.fileNameText}> {item['files'][0]['file_id']}{item['files'][0]['extension']}</Text>
+                </View>
+                : null}
+            {'body_nomarkup' in item ? <View style={styles.threadComContainer}>
+                <Text style={[styles.threadCom]}>{formatCom(item.body_nomarkup)}</Text>
+            </View> : null}
+        </View>
+        </TouchableOpacity>;
+    };
+
+    return (
+        <View style={styles.container} onLayout={getData}>
+            <FlashList
+                contentContainerStyle={{paddingBottom: 100}}
+                ItemSeparatorComponent={separator}
+                estimatedItemSize={150}
+                data={apiResponse}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={() => {
+                        getData();
+                    }} />
+                }
+                ListFooterComponent={
+                    <View style={styles.footerContainer}>
+                        <Text style={styles.footerText}>{i18n.t('End')}</Text>
+                        {refreshing ? <ActivityIndicator /> : null}
+                    </View>
+                }
+                keyExtractor={keyExtractor}
+                renderItem={renderItem}
+            />
+            <SafeAreaView forceInset={{bottom: 'never'}} />
+        </View>
     );
 }
 
@@ -644,6 +733,7 @@ function BoardScreen({route, navigation}) {
             Copy: [board, item.no]
         }}>
             <TouchableOpacity
+                style={{backgroundColor: '#000'}}
                 onPress={() => navigation.navigate('Thread', {
                     board: board,
                     thread: item.no
@@ -655,7 +745,7 @@ function BoardScreen({route, navigation}) {
                     <Text style={styles.threadSub}>{item.sub}</Text>
                 </View>
                 {processFiles(board, item, false)}
-                {processEmbed(board, item, false)}
+                {processEmbed(item, false)}
                 {'com_nomarkup' in item ? <View style={styles.threadComContainer}>
                     <Text style={[styles.threadCom]}>{formatCom(item.com_nomarkup)}</Text>
                 </View> : null}
@@ -701,7 +791,7 @@ function BoardScreen({route, navigation}) {
 }
 
 function ThreadScreen({route, navigation}) {
-    const {board, thread, rf} = route.params;
+    const {board, thread, rf, down} = route.params;
 
     const [apiResponse, setApiResponse] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
@@ -727,60 +817,78 @@ function ThreadScreen({route, navigation}) {
     const [indexMap, setIndexMap] = useState([]); //using for smth like scrollTo(<postId>) looks like shit
 
     const getData = () => {
-        // setRefreshing(true);
-        getBoardThreadFromApi(board, thread).then((res) => {
-            setIndexMap([])
-            for (const post in res) {
-                let images = [];
-                indexMap.push(res[post].no);
-                if ('tim' in res[post] && !['.webm', '.mp4'].includes(res[post].ext)) {
-                    images.push({
-                        name: res[post].filename,
-                        uri: HOST + '/' + board + '/src/' + res[post].tim + res[post].ext
-                    });
-                }
-                if ('extra_files' in res[post]) {
-                    for (const ex_file in res[post].extra_files) {
-                        if (!['.webm', '.mp4'].includes(res[post].extra_files[ex_file].ext)) {
-                            images.push({
-                                name: res[post].extra_files[ex_file].filename,
-                                uri: HOST + '/' + board + '/src/' + res[post].extra_files[ex_file].tim + res[post].extra_files[ex_file].ext
-                            });
-                        }
+        return new Promise((resolve, reject) => {
+            getBoardThreadFromApi(board, thread).then((res) => {
+                let im = [];
+                for (const post in res) {
+                    let images = [];
+                    im.push(res[post].no);
+                    if ('tim' in res[post] && !['.webm', '.mp4'].includes(res[post].ext)) {
+                        images.push({
+                            name: res[post].filename,
+                            uri: HOST + '/' + board + '/src/' + res[post].tim + res[post].ext
+                        });
                     }
+                    if ('extra_files' in res[post]) {
+                        for (const ex_file in res[post].extra_files) {
+                            if (!['.webm', '.mp4'].includes(res[post].extra_files[ex_file].ext)) {
+                                images.push({
+                                    name: res[post].extra_files[ex_file].filename,
+                                    uri: HOST + '/' + board + '/src/' + res[post].extra_files[ex_file].tim + res[post].extra_files[ex_file].ext
+                                });
+                            }
+                        }
 
+                    }
+                    res[post].images = images;
                 }
-                res[post].images = images;
-            }
-            navigation.setOptions({ //TODO: full of shit
-                title: '/' + board + '/ #' + thread,
-                headerRight: () => {
-                    return <TouchableHighlight onPress={() => {
-                        navigation.navigate('Form', {board: board, thread: thread})
-                    }}>
-                        <View style={styles.headerActionContainer}>
-                            <Ionicons name='create' size={24} color='#FF7920' />
-                        </View>
-                    </TouchableHighlight>
-                }
-            })
-            setIndexMap(indexMap)
-            setApiResponse(res);
-        }).catch(error => {
-            console.error(error);
-        }).finally(() => {
-            setRefreshing(false);
+                navigation.setOptions({ //TODO: full of shit
+                    title: '/' + board + '/ #' + thread,
+                    headerRight: () => {
+                        return <TouchableHighlight onPress={() => {
+                            navigation.navigate('Form', {board: board, thread: thread})
+                        }}>
+                            <View style={styles.headerActionContainer}>
+                                <Ionicons name='create' size={24} color='#FF7920' />
+                            </View>
+                        </TouchableHighlight>
+                    }
+                })
+                setIndexMap(im);
+                setApiResponse(res);
+                resolve(im);
+            }).catch(error => {
+                console.error(error);
+                reject(error);
+            }).finally(() => {
+                setRefreshing(false);
+            });
         });
     };
     useEffect(() => {
-        getData();
-    }, [board, thread, refreshing, rf]);
+        getData().then((im) => {
+            setTimeout(() => {
+                if (rf !== undefined && rf !== null && rf !== 0 && typeof flatlistRef !== 'undefined') {
+                    console.log('Scroll to: bottom')
+                    flatlistRef.current.scrollToIndex({
+                        animated: false,
+                        index: im.indexOf(im[im.length - 1]),
+                    })
+                }
 
-    useEffect(() => {
-        typeof rf !== 'undefined' && typeof flatlistRef !== 'undefined' ? flatlistRef.current.scrollToEnd({
-            animated: true,
-        }) : false
-    }, [rf])
+                // console.log("Post: " + down, "Index: " + im.indexOf(down), im)
+
+                if (down !== undefined && down !== null && down !== 0 && typeof flatlistRef !== 'undefined') {
+                    console.log('Scroll to: ' + down)
+                    flatlistRef.current.scrollToIndex({
+                        animated: false,
+                        index: im.indexOf(down),
+                    })
+                }
+
+            }, 600)
+        });
+    }, [board, thread, refreshing, rf, down]);
 
     const MenuItems = [
         {
@@ -816,29 +924,34 @@ function ThreadScreen({route, navigation}) {
         return `post-${item.no}`;
     }, []);
 
-    const renderItem = useCallback(({item}) => {
+    const renderItem = ({item, index}) => {
         return <HoldItem
             containerStyles={{
-                paddingBottom: 10
+                paddingBottom: 5,
+                backgroundColor: '#000000'
             }}
+            menuAnchorPosition="top-center"
             items={MenuItems} closeOnTap actionParams={{
             Reply: [board, thread, item.no],
             Copy: [board, thread, item.no]
         }}>
-            <View style={styles.thread}>
-                <View style={styles.threadHead}>
-                    <Text style={styles.threadId}>#{item.no}</Text>
-                    <Text style={styles.threadName}>{item.name}: </Text>
-                    <Text style={styles.threadSub}>{item.sub}</Text>
+            <View style={{backgroundColor: '#000'}}>
+                <View style={[styles.thread, {
+                    borderWidth: indexMap.indexOf(down) === index ? 1 : 0
+                }]}>
+                    <View style={styles.threadHead}>
+                        <Text style={styles.threadId}>#{item.no}</Text>
+                        <Text style={styles.threadName}>{item.name}: </Text>
+                        <Text style={styles.threadSub}>{item.sub}</Text>
+                    </View>
+                    {processFiles(board, item, true, onSelect)}
+                    {processEmbed(item, true)}
+                    {'com_nomarkup' in item ? processCom(item.com_nomarkup, flatlistRef, indexMap) : null}
                 </View>
-
-                {processFiles(board, item, true, onSelect)}
-                {processEmbed(board, item, true)}
-                {'com_nomarkup' in item ? processCom(item.com_nomarkup, flatlistRef, indexMap) : null}
             </View>
-
         </HoldItem>
-    }, []);
+
+    };
 
     return (
         <View style={styles.container}>
@@ -909,28 +1022,32 @@ const processCom = (com, flatListRef, indexMap) => {
         //TODO: Post too long click to expand
     }
 
-    return <View style={{maxHeight: 9000}}>
+    return <View style={{maxHeight: 9000, margin: 10, marginBottom: 5}}>
         <Hyperlink linkStyle={styles.link} onPress={(url, text) => handleLinkPress(url)}>
             <Text style={[styles.threadCom]}>{formatCom(com, flatListRef, indexMap)}</Text>
         </Hyperlink>
     </View>
 }
 
-const processEmbed = (board, item, clickable) => {
-    if ('embed' in item) {
-        if (detectYoutube(item.embed)) { //TODO: vimeo, vocaro
+const processEmbed = (item, clickable) => {
+    if ('embed' in item && item.embed !== null) {
+        const yt = detectYoutube(item.embed) === false ? getYoutubeId(item.embed) : detectYoutube(item.embed);
+        if (yt) { //TODO: vimeo, vocaroo, soundcloud, etc
             let image = <Image
                 resizeMode={"cover"}
                 style={styles.postImage}
                 source={{
-                    uri: 'https://img.youtube.com/vi/' + detectYoutube(item.embed) + '/0.jpg',
+                    uri: 'https://img.youtube.com/vi/' + yt + '/0.jpg',
                 }}
             />
 
             if (clickable) {
                 image = <TouchableOpacity
-                    onPress={() => handleLinkPress('https://www.youtube.com/watch?v=' + detectYoutube(item.embed))}
+                    style={{paddingTop: 15}}
+                    onPress={() => handleLinkPress('https://www.youtube.com/watch?v=' + yt)}
                 >{image}</TouchableOpacity>
+            } else {
+                image = <View style={{paddingTop: 15}}>{image}</View>
             }
 
             return image
@@ -979,6 +1096,7 @@ const processFiles = (board, item, clickable, onSelect) => {
             if (clickable) {
                 image = [
                     <TouchableOpacity
+                        style={{paddingTop: 15}}
                         key={'post_image_c_' + item.no.toString()}
                         onPress={() => onSelect(item.images, 0)}
                     >{image[0]}</TouchableOpacity>,
@@ -987,6 +1105,10 @@ const processFiles = (board, item, clickable, onSelect) => {
                         <Text key={'post_image_t_' + item.no.toString()} style={[styles.threadImagesName]}>{firstImage.original}{firstImage.extension}</Text>
                     </View>
                 ]
+            } else {
+                image = [
+                    <View style={{paddingTop: 15}}>{image[0]}</View>
+                ];
             }
         }
 
@@ -997,6 +1119,7 @@ const processFiles = (board, item, clickable, onSelect) => {
 
             image.push(
                 <TouchableOpacity
+                    style={{marginTop: 10}}
                     onPress={() => handleLinkPress(HOST + '/' + board + '/src/' + files[file].filename + files[file].extension)}
                 >
                     <View style={styles.threadFile}>
@@ -1019,6 +1142,16 @@ const handleLinkPress = async (url) => {
         Linking.openURL(url); //LOL
         //Alert.alert(`Don't know how to open this URL: ${url}`); //TODO: Request permission
     }
+};
+
+const getYoutubeId = (url) => {
+    if (url.substring(0, 24) === 'https://youtu.be/') {
+        return url.substring(17, 28);
+    } else if (url.substring(0, 32) === 'https://www.youtube.com/watch?v=') {
+        return url.substring(32, 43);
+    }
+
+    return false;
 };
 
 const detectYoutube = (str) => {
