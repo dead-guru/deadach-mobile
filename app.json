@@ -2,7 +2,7 @@
   "expo": {
     "name": "deadach",
     "slug": "deadach",
-    "version": "1.3.0",
+    "version": "1.3.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -27,14 +27,15 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.assada.deadach"
+      "bundleIdentifier": "com.assada.deadach",
+      "buildNumber": "3"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "versionCode": 15,
+      "versionCode": 16,
       "package": "com.assada.deadach",
       "blockedPermissions": [
         "CAMERA",

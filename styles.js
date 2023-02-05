@@ -49,7 +49,8 @@ const styles = StyleSheet.create({
         color: '#fff',
         backgroundColor: '#000',
         fontSize: 14,
-        width: 'auto'
+        width: 'auto',
+        paddingBottom: 15,
     },
     threadComContainer: {
         maxHeight: 150,

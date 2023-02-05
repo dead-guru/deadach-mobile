@@ -1022,7 +1022,7 @@ const processCom = (com, flatListRef, indexMap) => {
         //TODO: Post too long click to expand
     }
 
-    return <View style={{maxHeight: 9000, margin: 10, marginBottom: 5}}>
+    return <View style={{maxHeight: 9000, margin: 10, marginBottom: 0}}>
         <Hyperlink linkStyle={styles.link} onPress={(url, text) => handleLinkPress(url)}>
             <Text style={[styles.threadCom]}>{formatCom(com, flatListRef, indexMap)}</Text>
         </Hyperlink>
