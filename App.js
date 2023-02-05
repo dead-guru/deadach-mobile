@@ -60,7 +60,8 @@ import {
     getBoarsFromApi,
     getCaptcha,
     getLatest,
-    postViaApi
+    postViaApi,
+    reportPost
 } from './providers/deadach';
 
 enableScreens();
@@ -918,6 +919,20 @@ function ThreadScreen({route, navigation}) {
                 });
             }
         },
+        {
+            text: 'Report', isDestructive: true, icon: 'warning-outline', onPress: (board, thread, postId) => {
+                reportPost(board, thread, postId).then((res) => {
+                    Toast.show('Reported', {
+                        duration: Toast.durations.SHORT,
+                        position: Toast.positions.BOTTOM,
+                        shadow: false,
+                        animation: true,
+                        hideOnPress: true,
+                        delay: 0,
+                    });
+                });
+            }
+        },
     ];
 
     const keyExtractor = useCallback((item) => {
@@ -933,7 +948,8 @@ function ThreadScreen({route, navigation}) {
             menuAnchorPosition="top-center"
             items={MenuItems} closeOnTap actionParams={{
             Reply: [board, thread, item.no],
-            Copy: [board, thread, item.no]
+            Copy: [board, thread, item.no],
+            Report: [board, thread, item.no],
         }}>
             <View style={{backgroundColor: '#000'}}>
                 <View style={[styles.thread, {
