@@ -17,12 +17,11 @@ import {
     TextInput,
     TouchableHighlight,
     TouchableOpacity,
-    useColorScheme,
     View
 } from 'react-native';
 import * as Linking from 'expo-linking';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {DarkTheme, DefaultTheme, NavigationContainer} from '@react-navigation/native';
+import {DarkTheme, NavigationContainer} from '@react-navigation/native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {useHeaderHeight} from '@react-navigation/elements'
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -47,12 +46,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as mime from 'mime';
 
 import styles from './styles';
+import translations from './translation';
 
 import {HoldItem, HoldMenuProvider} from 'react-native-hold-menu';
 import {RootSiblingParent} from 'react-native-root-siblings';
 import Toast from 'react-native-root-toast';
 import {I18n} from 'i18n-js';
 import * as Progress from 'react-native-progress';
+
+import LottieModal from './animatedModal';
 
 import {
     getBoardThreadFromApi,
@@ -76,56 +78,19 @@ const separator = () => {
     />
 }
 
-const translations = {
-    en: {
-        List: 'List',
-        Board: 'Board',
-        End: 'This is the end...',
-        Subject: 'Subject',
-        Post: 'Post',
-        Create: 'Create',
-        Captcha: 'Captcha',
-        ClickToReload: 'Click on image to reload captcha',
-        AddFiles: 'Add Files',
-        PostFor: 'Post for',
-        CommentFor: 'Comment for',
-        Back: 'Back',
-        Latest: 'Latest',
-        BoardFirst: 'Please, select board first!',
-    },
-    uk: {
-        List: 'Список',
-        Board: 'Дошка',
-        End: 'Це кінець...',
-        Subject: 'Тема',
-        Post: 'Пост',
-        Create: 'Створити',
-        Captcha: 'Капча',
-        ClickToReload: 'Натистніть на картинку для оновлення',
-        AddFiles: 'Додати файли',
-        PostFor: 'Пост в',
-        Latest: 'Свіже',
-        CommentFor: 'Комментар в',
-        Back: 'Назад',
-        BoardFirst: 'Спочатку оберіть дошку зі списку!',
-    },
-};
-
 const i18n = new I18n(translations);
 
 i18n.locale = getLocales()[0].languageCode;
 i18n.enableFallback = true;
 
 export default function App() {
-    const scheme = useColorScheme();
-
     return (
         <RootSiblingParent>
             <HoldMenuProvider
                 theme="dark"
                 iconComponent={Ionicons}
             >
-                <NavigationContainer theme={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+                <NavigationContainer theme={DarkTheme}>
                     <Stack.Navigator
                         initialRouteName="Home"
                     >
@@ -198,19 +163,26 @@ function PostForm({route, navigation}) {
         setPost(post);
     }, [captchaCookie])
 
+    const [errorModalVisible, setErrorModalVisible] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('Error');
+
     const postHandle = async (post) => {
         setIsDisabledPost(true);
         let error = false;
 
         //validation
-        if (post.body.length < 3) {
-            Alert.alert('Error', 'Post too short');
+        if (post.body.length < 3 && post.files.length < 1) {
+            // Alert.alert(i18n.t('ValidationError'), i18n.t('PostToShort'));
+            setErrorMessage(i18n.t('PostToShort'));
+            setErrorModalVisible(true);
             error = true;
         }
 
         //validation
         if (!error && post.files.length < 1 && thread <= 0) {
-            Alert.alert('Error', 'Post must have at least one image!');
+            // Alert.alert(i18n.t('ValidationError'), i18n.t('PostWithoutImage'));
+            setErrorMessage(i18n.t('PostWithoutImage'));
+            setErrorModalVisible(true);
             error = true;
         }
 
@@ -218,7 +190,9 @@ function PostForm({route, navigation}) {
             let res = await postViaApi(post)
 
             if ('error' in res) {
-                Alert.alert('Api Error!', res.error.replace(/<[^>]+>/g, ' '))
+                //Alert.alert(i18n.t('ApiError'), res.error.replace(/<[^>]+>/g, ' '))
+                setErrorMessage(res.error.replace(/<[^>]+>/g, ' '));
+                setErrorModalVisible(true);
                 setIsDisabledPost(false);
                 return false;
             }
@@ -252,9 +226,13 @@ function PostForm({route, navigation}) {
             selectionLimit: 3
         });
 
+        const MAX_FILES = 3; //TODO: move to config
+
         if (!result.canceled) {
-            if (result.assets.length > 3) {
-                Alert.alert('Error', 'Only 3 files available per post!');
+            if (result.assets.length > MAX_FILES) {
+                setErrorMessage(i18n.t('PostFileLimit', {limit: MAX_FILES}));
+                setErrorModalVisible(true);
+                // Alert.alert(i18n.t('ValidationError'), i18n.t('PostFileLimit', {limit: MAX_FILES}));
                 return;
             }
 
@@ -263,9 +241,11 @@ function PostForm({route, navigation}) {
                 let uri = result.assets[im].uri;
                 const fileInfo = await FileSystem.getInfoAsync(uri);
                 let filename = uri.split('/').pop();
-                const maxFilesize = 200000;
+                const maxFilesize = 200000; //TODO: move to config
                 if (fileInfo > maxFilesize) {
-                    Alert.alert('Error!', 'File too big! Max: ' + maxFilesize)
+                    setErrorMessage(i18n.t('PostFileTooBig', {max: maxFilesize}));
+                    setErrorModalVisible(true);
+                    // Alert.alert(i18n.t('ValidationError'), i18n.t('PostFileTooBig', {max: maxFilesize}));
                 }
 
                 const mimeType = mime.getType(filename);
@@ -323,6 +303,8 @@ function PostForm({route, navigation}) {
                 enabled
                 keyboardVerticalOffset={height + 47}
             >
+                {errorModalVisible ?
+                    <LottieModal message={errorMessage} bgColor={'rgba(56,0,0,0.5)'} title={"Oops..."} timeout={1000} lottieSource={require('./assets/error.json')} hideModal={() => setErrorModalVisible(false)} /> : null}
                 <ScrollView keyboardShouldPersistTaps={'always'} style={styles.postForm.scrollContainer}>
                     {thread === null ? <View
                         style={styles.postForm.input.subject.container}>
@@ -492,7 +474,7 @@ function LatestScreen({navigation}) {
             })}
         ><View style={[styles.thread, {paddingBottom: 10}]}>
             <View style={styles.threadHead}>
-                <Text style={styles.threadAction}>{item.thread === null ? 'Thread' : 'Post'} in </Text>
+                <Text style={styles.threadAction}>{item.thread === null ? i18n.t('Thread') : i18n.t('Comment')} {i18n.t('in')} </Text>
                 <Text style={styles.threadBoard}>/{item.board}/</Text>
                 <Text style={styles.threadId}>#{item.id}</Text>
                 <Text style={styles.threadName}>{item.name}</Text>
@@ -549,23 +531,21 @@ function BoardsScreen({navigation}) {
     const storeData = async (value) => {
         try {
             await AsyncStorage.setItem('@terms', value)
-            console.log("store:" + value)
         } catch (e) {
-            Alert.alert('Error', e.toString());
+            Alert.alert(i18n.t('ApiError'), e.toString());
         }
     }
 
     const getTermsModal = async () => {
         try {
             const value = await AsyncStorage.getItem('@terms')
-            console.log(value)
             if (value !== null) {
                 setModalVisible(!value)
             } else {
                 setModalVisible(true)
             }
         } catch (e) {
-            Alert.alert('Error!', e.toString());
+            Alert.alert(i18n.t('ApiError'), e.toString());
         }
     }
 
@@ -624,17 +604,17 @@ function BoardsScreen({navigation}) {
                 }}>
                 <View style={styles.centeredView}>
                     <View style={styles.modalView}>
-                        <Text style={styles.modalText}>Agree to terms and user policy!</Text>
+                        <Text style={styles.modalText}>{i18n.t('AgreeToTerms')}</Text>
                         <Pressable onPress={() => {
-                            Linking.openURL('https://deada.ch/rules.html');
-                        }}><Text style={styles.modalLinks}>View terms and policy</Text></Pressable>
+                            Linking.openURL('https://deada.ch/rules.html'); //TODO: move to config
+                        }}><Text style={styles.modalLinks}></Text></Pressable>
                         <Pressable
                             style={[styles.button, styles.buttonClose]}
                             onPress={() => {
                                 setModalVisible(!modalVisible);
                                 storeData('true');
                             }}>
-                            <Text style={styles.textStyle}>Accept Terms and Policy</Text>
+                            <Text style={styles.textStyle}>{i18n.t('AcceptTerms')}</Text>
                         </Pressable>
                     </View>
                 </View>
@@ -660,13 +640,15 @@ function BoardScreen({route, navigation}) {
     const {rf} = route.params;
 
     const [refreshing, setRefreshing] = useState(false);
-    // const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
     const [p, setP] = useState(0);
     const [apiResponse, setApiResponse] = useState([]);
+    const [onEndReachedCalledDuringMomentum, setOnEndReachedCalledDuringMomentum] = useState(false);
 
     const getData = (page, board) => {
         setP(page)
         setRefreshing(true);
+        setLoading(true);
         let oldApiResponse = apiResponse;
         if (page === 0) { //TODO: cant reset state to initial...
             oldApiResponse = [];
@@ -680,6 +662,7 @@ function BoardScreen({route, navigation}) {
             console.error(error);
         }).finally(() => {
             setRefreshing(false);
+            setLoading(false);
         });
 
         return true;
@@ -688,8 +671,6 @@ function BoardScreen({route, navigation}) {
     useMemo(() => {
         getData(0, board);
     }, [board, rf]);
-
-    let onEndReachedCalledDuringMomentum = false;
 
     const MenuItems = [
         {
@@ -756,19 +737,19 @@ function BoardScreen({route, navigation}) {
     }, []);
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <FlashList
                 contentContainerStyle={{paddingBottom: 100}}
                 ItemSeparatorComponent={separator}
-                estimatedItemSize={200}
+                estimatedItemSize={291}
                 data={apiResponse}
                 onMomentumScrollBegin={() => {
-                    onEndReachedCalledDuringMomentum = false;
+                    setOnEndReachedCalledDuringMomentum(false);
                 }}
                 onEndReached={() => {
-                    if (!onEndReachedCalledDuringMomentum && !refreshing) {
+                    if (onEndReachedCalledDuringMomentum === false && !loading) {
                         getData(p + 1, board);
-                        onEndReachedCalledDuringMomentum = true;
+                        setOnEndReachedCalledDuringMomentum(true);
                     }
                 }}
                 onEndReachedThreshold={0.05}
@@ -787,7 +768,7 @@ function BoardScreen({route, navigation}) {
                 renderItem={renderItem}
             />
             <SafeAreaView forceInset={{bottom: 'never'}} />
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -814,7 +795,7 @@ function ThreadScreen({route, navigation}) {
     const onLongPress = (image) => {
         handleLinkPress(image.uri);
     };
-
+    const [postModalVisible, setPostModalVisible] = useState(false);
     const [indexMap, setIndexMap] = useState([]); //using for smth like scrollTo(<postId>) looks like shit
 
     const getData = () => {
@@ -868,19 +849,23 @@ function ThreadScreen({route, navigation}) {
     };
     useEffect(() => {
         getData().then((im) => {
+            if (flatlistRef !== 'undefined') {
+                flatlistRef.current.recordInteraction();
+                flatlistRef.current.prepareForLayoutAnimationRender();
+            }
+            if (rf !== undefined && rf !== null && rf !== 0) {
+                setPostModalVisible(true);
+            }
             setTimeout(() => {
                 if (rf !== undefined && rf !== null && rf !== 0 && typeof flatlistRef !== 'undefined') {
-                    console.log('Scroll to: bottom')
+
                     flatlistRef.current.scrollToIndex({
                         animated: false,
                         index: im.indexOf(im[im.length - 1]),
                     })
                 }
 
-                // console.log("Post: " + down, "Index: " + im.indexOf(down), im)
-
                 if (down !== undefined && down !== null && down !== 0 && typeof flatlistRef !== 'undefined') {
-                    console.log('Scroll to: ' + down)
                     flatlistRef.current.scrollToIndex({
                         animated: false,
                         index: im.indexOf(down),
@@ -890,6 +875,9 @@ function ThreadScreen({route, navigation}) {
             }, 600)
         });
     }, [board, thread, refreshing, rf, down]);
+
+
+    const [modalVisible, setModalVisible] = useState(false);
 
     const MenuItems = [
         {
@@ -922,22 +910,15 @@ function ThreadScreen({route, navigation}) {
         {
             text: 'Report', isDestructive: true, icon: 'warning-outline', onPress: (board, thread, postId) => {
                 reportPost(board, thread, postId).then((res) => {
-                    Toast.show('Reported', {
-                        duration: Toast.durations.SHORT,
-                        position: Toast.positions.BOTTOM,
-                        shadow: false,
-                        animation: true,
-                        hideOnPress: true,
-                        delay: 0,
-                    });
+                    setModalVisible(true)
+                }).catch((error) => {
+                    console.error(error)
                 });
             }
         },
     ];
 
-    const keyExtractor = useCallback((item) => {
-        return `post-${item.no}`;
-    }, []);
+    const keyExtractor = (item) => `post-${item.no}`;
 
     const renderItem = ({item, index}) => {
         return <HoldItem
@@ -971,6 +952,10 @@ function ThreadScreen({route, navigation}) {
 
     return (
         <View style={styles.container}>
+            {postModalVisible ?
+                <LottieModal timeout={0} size={400} bgColor={'rgba(0, 0, 0, 0)'} lottieSource={require('./assets/confetti.json')} hideModal={() => setPostModalVisible(false)} /> : null}
+            {modalVisible ?
+                <LottieModal title={"Reported!"} message={"We cannot respond and provide updates on reports."} timeout={1000} lottieSource={require('./assets/done.json')} hideModal={() => setModalVisible(false)} /> : null}
             <ImageView
                 images={images}
                 imageIndex={currentImageIndex}
@@ -982,7 +967,7 @@ function ThreadScreen({route, navigation}) {
             <FlashList
                 ref={flatlistRef}
                 data={apiResponse}
-                estimatedItemSize={200}
+                estimatedItemSize={50}
                 contentContainerStyle={{paddingBottom: 20}}
                 ItemSeparatorComponent={separator}
                 refreshControl={
@@ -1045,9 +1030,63 @@ const processCom = (com, flatListRef, indexMap) => {
     </View>
 }
 
+const detectVocaroo = (embed) => {
+    const regex = /https?:\/\/(\w+\.)?voca(?:\.ro|roo\.com)\/embed\/([a-zA-Z0-9]{2,12})/gm
+
+    let m;
+    let res = [];
+
+    while ((m = regex.exec(embed)) !== null) {
+        if (m.index === regex.lastIndex) {
+            regex.lastIndex++;
+        }
+        m.forEach((match, groupIndex) => {
+            res.push(match)
+        });
+    }
+
+
+    return res.length > 0 ? res[2] : false;
+}
+const detectVimeo = (embed) => {
+    const regex = /https?:\/\/(\w+\.)?player\.vimeo\.com\/video\/(\d{2,10})(\?.+)?/gm
+
+    let m;
+    let res = [];
+
+    while ((m = regex.exec(embed)) !== null) {
+        if (m.index === regex.lastIndex) {
+            regex.lastIndex++;
+        }
+        m.forEach((match, groupIndex) => {
+            res.push(match)
+        });
+    }
+
+    return res.length > 0 ? res[2] : false;
+}
+const detectDailyMotion = (embed) => {
+    const regex = /https?:\/\/(\w+\.)?dailymotion\.com\/embed\/video\/([a-zA-Z0-9]{2,10})(_.+)?/gm
+
+    let m;
+    let res = [];
+
+    while ((m = regex.exec(embed)) !== null) {
+        if (m.index === regex.lastIndex) {
+            regex.lastIndex++;
+        }
+        m.forEach((match, groupIndex) => {
+            res.push(match)
+        });
+    }
+
+    return res.length > 0 ? res[2] : false;
+}
+
 const processEmbed = (item, clickable) => {
     if ('embed' in item && item.embed !== null) {
         const yt = detectYoutube(item.embed) === false ? getYoutubeId(item.embed) : detectYoutube(item.embed);
+
         if (yt) { //TODO: vimeo, vocaroo, soundcloud, etc
             let image = <Image
                 resizeMode={"cover"}
@@ -1061,13 +1100,80 @@ const processEmbed = (item, clickable) => {
                 image = <TouchableOpacity
                     style={{paddingTop: 15}}
                     onPress={() => handleLinkPress('https://www.youtube.com/watch?v=' + yt)}
-                >{image}</TouchableOpacity>
+                >
+                    <Text style={{
+                        padding: 10,
+                        color: '#ffffff',
+                        fontSize: 14,
+                        fontWeight: 'bold',
+                        backgroundColor: 'rgba(255,0,0,1)',
+                    }}>
+                        <Ionicons name='logo-youtube' size={14} color="#ffffff" /> YouTube
+                    </Text>
+                    {image}
+                </TouchableOpacity>
             } else {
                 image = <View style={{paddingTop: 15}}>{image}</View>
             }
 
             return image
         }
+
+        const vocaroo = detectVocaroo(item.embed);
+        if (vocaroo) {
+            return <TouchableOpacity
+                style={{marginTop: 10}}
+                onPress={() => handleLinkPress('https://vocaroo.com/' + vocaroo)}
+            >
+                <View style={[styles.threadFile, {backgroundColor: '#CAFF70'}]}>
+                    <Ionicons style={{
+                        padding: 0,
+                        marginTop: -2,
+                        margin: 0,
+
+                    }} name='link-outline' size={24} color="#a554a5" />
+                    <Text style={[styles.fileNameText, {color: '#633263'}]}> {'vocaroo.com/' + vocaroo}</Text>
+                </View>
+            </TouchableOpacity>
+        }
+
+        const vimeo = detectVimeo(item.embed);
+
+        if (vimeo) {
+            return <TouchableOpacity
+                style={{marginTop: 10}}
+                onPress={() => handleLinkPress('https://vimeo.com/' + vimeo)}
+            >
+                <View style={[styles.threadFile, {backgroundColor: '#00ADEF'}]}>
+                    <Ionicons style={{
+                        padding: 0,
+                        marginTop: -2,
+                        margin: 0,
+
+                    }} name='logo-vimeo' size={24} color="#ffffff" />
+                    <Text style={[styles.fileNameText, {color: '#ffffff'}]}> {'vimeo.com/' + vimeo}</Text>
+                </View>
+            </TouchableOpacity>
+        }
+    }
+
+    const dailyMotion = detectDailyMotion(item.embed);
+
+    if (dailyMotion) {
+        return <TouchableOpacity
+            style={{marginTop: 10}}
+            onPress={() => handleLinkPress('https://dailymotion.com/video/' + dailyMotion)}
+        >
+            <View style={[styles.threadFile, {backgroundColor: '#ffffff', borderColor: '#232323'}]}>
+                <Ionicons style={{
+                    padding: 0,
+                    marginTop: -2,
+                    margin: 0,
+
+                }} name='link-outline' size={24} color="#232323" />
+                <Text style={[styles.fileNameText, {color: '#232323'}]}> {'dailymotion.com/video/' + dailyMotion}</Text>
+            </View>
+        </TouchableOpacity>
     }
 
     return null;
@@ -1115,11 +1221,13 @@ const processFiles = (board, item, clickable, onSelect) => {
                         style={{paddingTop: 15}}
                         key={'post_image_c_' + item.no.toString()}
                         onPress={() => onSelect(item.images, 0)}
-                    >{image[0]}</TouchableOpacity>,
-                    <View key={'post_image_meta_' + item.no.toString()} style={styles.threadImageContainer}>
-                        <Text key={'post_image_p_' + item.no.toString()} style={[styles.threadImagesCount]}>1/{imagesCount}</Text>
-                        <Text key={'post_image_t_' + item.no.toString()} style={[styles.threadImagesName]}>{firstImage.original}{firstImage.extension}</Text>
-                    </View>
+                    >
+                        {image[0]}
+                        <View key={'post_image_meta_' + item.no.toString()} style={styles.threadImageContainer}>
+                            <Text key={'post_image_p_' + item.no.toString()} style={[styles.threadImagesCount]}>1/{imagesCount}</Text>
+                            <Text key={'post_image_t_' + item.no.toString()} style={[styles.threadImagesName]}>{firstImage.original}{firstImage.extension}</Text>
+                        </View>
+                    </TouchableOpacity>
                 ]
             } else {
                 image = [

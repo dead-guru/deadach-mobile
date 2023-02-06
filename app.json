@@ -26,16 +26,18 @@
       "**/*"
     ],
     "ios": {
+      "userInterfaceStyle": "dark",
       "supportsTablet": true,
       "bundleIdentifier": "com.assada.deadach",
-      "buildNumber": "4"
+      "buildNumber": "5"
     },
     "android": {
+      "userInterfaceStyle": "dark",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "versionCode": 17,
+      "versionCode": 20,
       "package": "com.assada.deadach",
       "blockedPermissions": [
         "CAMERA",

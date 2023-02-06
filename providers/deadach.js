@@ -152,7 +152,7 @@ export async function reportPost(board, thread, post) {
             "content-type": "application/x-www-form-urlencoded",
         },
         "referrer": HOST + "/" + board + "/res/" + thread + ".html",
-        "body": "delete_" + post + "=&password=%2BVl*9*pN&reason=Bad+content+from+app%21&report=%D0%9F%D0%BE%D0%B2%D1%96%D0%B4%D0%BE%D0%BC%D0%B8%D1%82%D0%B8+%D0%B0%D0%B4%D0%BC%D1%96%D0%BD%D1%96%D1%81%D1%82%D1%80%D0%B0%D1%86%D1%96%D1%8E&board=" + board,
+        "body": "delete_" + post + "=&password=%2BVl*9*pN&reason=Bad+content+from+app%21&report=%D0%9F%D0%BE%D0%B2%D1%96%D0%B4%D0%BE%D0%BC%D0%B8%D1%82%D0%B8+%D0%B0%D0%B4%D0%BC%D1%96%D0%BD%D1%96%D1%81%D1%82%D1%80%D0%B0%D1%86%D1%96%D1%8E&api=GCOnnUXiyNg18isqP8xqiRTPB7kYrsBReN_rXgA&board=" + board,
         "method": "POST",
     }).then(response => {
         return true

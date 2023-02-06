@@ -191,7 +191,11 @@ const styles = StyleSheet.create({
     },
     fileNameText: {
         fontSize: 16,
-        color: '#c1c1c1'
+        paddingTop: 0,
+        paddingBottom: 10,
+        margin: 0,
+        color: '#c1c1c1',
+        alignSelf: 'flex-start',
     },
     format: {
         cit: {color: '#ff7920', fontWeight: 'bold'},
@@ -308,6 +312,13 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 4,
         elevation: 5,
+    },
+    modalTransView: {
+        margin: 20,
+        elevation: 5,
+        padding: 35,
+        alignItems: 'center',
+        backgroundColor: 'transparent',
     },
     modalText: {
         marginBottom: 15,
