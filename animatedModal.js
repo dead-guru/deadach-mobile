@@ -20,19 +20,19 @@ const LottieModal = (props) => {
             <TouchableOpacity style={[styles.modalBackDrop, {backgroundColor: 'bgColor' in props ? props.bgColor : 'rgba(0, 0, 0, 0.5)'}]} activeOpacity={1} onPress={() => props.hideModal()}>
                 <View style={styles.centeredView}>
                     <View style={styles.modalTransView}>
-                        <Lottie
+                        {'lottieSource' in props ? <Lottie
                             ref={animationRef}
                             style={{width: size, height: size}}
                             source={props.lottieSource}
-                            autoPlay={true}
-                            autoSize={false}
-                            loop={false}
+                            autoPlay={'autoPlay' in props ? props.autoPlay : true}
+                            autoSize={'autoSize' in props ? props.autoSize : false}
+                            loop={'loop' in props ? props.loop : false}
                             onAnimationFinish={() => {
                                 setTimeout(() => {
                                     props.hideModal()
                                 }, 'timeout' in props ? props.timeout : 0)
                             }}
-                        />
+                        /> : null}
                         {'title' in props ?
                             <Text style={{color: '#fff', fontWeight: 'bold'}}>{props.title}</Text> : null}
                         {'message' in props ?
@@ -41,7 +41,17 @@ const LottieModal = (props) => {
                                 justifyContent: 'center',
                                 alignItems: 'center',
                                 alignSelf: 'center',
+                                textAlign: 'center',
                             }}>{props.message}</Text> : null}
+                        <Text style={{
+                            color: '#b9b9b9',
+                            marginTop: 20,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            alignSelf: 'center',
+                            textAlign: 'center',
+                            fontSize: 10,
+                        }}>{'dismissText' in props ? props.dismissText : 'Click anywhere to dismiss'}</Text>
                     </View>
                 </View>
             </TouchableOpacity>

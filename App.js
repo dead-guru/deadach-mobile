@@ -673,6 +673,30 @@ function BoardScreen({route, navigation}) {
 
     const {rf} = route.params;
 
+    const [tipVisible, setTipVisible] = useState(false);
+
+    const closeTip = async () => {
+        try {
+            await AsyncStorage.setItem('@board_tip', 'true')
+            setTipVisible(false)
+        } catch (e) {
+            Alert.alert(i18n.t('ApiError'), e.toString());
+        }
+    }
+
+    const openTip = async () => {
+        try {
+            const value = await AsyncStorage.getItem('@board_tip')
+            if (value !== null) {
+                setTipVisible(!value)
+            } else {
+                setTipVisible(true)
+            }
+        } catch (e) {
+            Alert.alert(i18n.t('ApiError'), e.toString());
+        }
+    }
+
     const [refreshing, setRefreshing] = useState(false);
     const [errorModal, setErrorModal] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -707,6 +731,7 @@ function BoardScreen({route, navigation}) {
     useMemo(() => {
         getData(0, board);
         navigation.setOptions({title: i18n.t('Board') + ' /' + board + '/'});
+        openTip();
     }, [board, rf]);
 
     const MenuItems = [
@@ -739,7 +764,7 @@ function BoardScreen({route, navigation}) {
     ];
 
     const keyExtractor = useCallback((item) => {
-        return `thread-${item.no}`;
+        return `threads_screen-${item.no}`;
     }, []);
 
     const renderItem = useCallback(({item}) => {
@@ -777,6 +802,8 @@ function BoardScreen({route, navigation}) {
         <SafeAreaView style={styles.container}>
             {errorModal ?
                 <LottieModal timeout={3000} title={"Error!"} bgColor={'rgba(130, 0, 0, 0)'} lottieSource={require('./assets/error.json')} hideModal={() => setErrorModal(false)} /> : null}
+            {tipVisible ?
+                <LottieModal timeout={3000} title={"Tip!"} message={"Long press on a list item opens the action menu for that item!"} bgColor={'rgba(0,46,58,0.78)'} hideModal={() => closeTip()} /> : null}
             <FlashList
                 contentContainerStyle={{paddingBottom: 100}}
                 ItemSeparatorComponent={separator}
