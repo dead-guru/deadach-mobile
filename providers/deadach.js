@@ -12,7 +12,6 @@ export function getBoardThreadsFromApi(board) {
 }
 
 export function getBoardThreadFromApi(board, thread) {
-    console.log('getBoardThreadFromApi');
     return fetch(HOST + '/' + board + '/res/' + thread + '.json' + '?random_number=' + new Date().getTime())
         .then(response => response.json())
         .then(json => {
