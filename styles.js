@@ -192,10 +192,10 @@ const styles = StyleSheet.create({
     fileNameText: {
         fontSize: 16,
         paddingTop: 0,
-        paddingBottom: 10,
+        paddingBottom: 8,
         margin: 0,
         color: '#c1c1c1',
-        alignSelf: 'flex-start',
+        lineHeight: 20,
     },
     format: {
         cit: {color: '#ff7920', fontWeight: 'bold'},

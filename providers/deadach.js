@@ -12,6 +12,7 @@ export function getBoardThreadsFromApi(board) {
 }
 
 export function getBoardThreadFromApi(board, thread) {
+    console.log('getBoardThreadFromApi');
     return fetch(HOST + '/' + board + '/res/' + thread + '.json' + '?random_number=' + new Date().getTime())
         .then(response => response.json())
         .then(json => {
@@ -42,7 +43,13 @@ export function getBoardThreadsWithBody(board, page) {
 
     return new Promise((resolve, reject) => {
         fetch(uri)
-            .then(response => response.json())
+            .then(response => {
+                return response.json().then((json) => {
+                    return json
+                }).catch(error => {
+                    reject(error)
+                })
+            })
             .then(async json => {
                 let threads = [];
                 if (typeof json[page] === 'undefined') {
@@ -141,7 +148,6 @@ export async function getLatest() {
             return [];
         });
 }
-
 
 export async function reportPost(board, thread, post) {
     return fetch(HOST + "/post/", {

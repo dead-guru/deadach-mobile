@@ -42,6 +42,18 @@ const translations = {
         CommentFor: 'Комментар в',
         Back: 'Назад',
         BoardFirst: 'Спочатку оберіть дошку зі списку!',
+        PostToShort: 'Пост занадто короткий!',
+        ValidationError: 'Помилка валідації',
+        PostWithoutImage: 'Пост повинен мати хоча б одну картинку!',
+        ApiError: 'API Помилка',
+        PostFileLimit: 'Тільки %{limit} файлів може бути додано!',
+        PostFileTooBig: 'Файл завеликий! Максимум: %{max} байт',
+        Thread: 'Тред',
+        Comment: 'Комментар',
+        in: 'в',
+        AgreeToTerms: 'Погодьтесь з правилами і політикою користувача!',
+        ViewTerms: 'Переглянути правила і політику',
+        AcceptTerms: 'Прийняти Правила і Політику',
     },
 };
 

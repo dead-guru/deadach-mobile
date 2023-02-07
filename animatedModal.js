@@ -35,7 +35,13 @@ const LottieModal = (props) => {
                         />
                         {'title' in props ?
                             <Text style={{color: '#fff', fontWeight: 'bold'}}>{props.title}</Text> : null}
-                        {'message' in props ? <Text style={{color: '#fff'}}>{props.message}</Text> : null}
+                        {'message' in props ?
+                            <Text style={{
+                                color: '#fff',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                alignSelf: 'center',
+                            }}>{props.message}</Text> : null}
                     </View>
                 </View>
             </TouchableOpacity>

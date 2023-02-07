@@ -35,6 +35,8 @@ import {FlashList} from "@shopify/flash-list"
 
 import reactStringReplace from 'react-string-replace';
 
+import Dialog from "react-native-dialog";
+
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import * as VideoThumbnails from 'expo-video-thumbnails';
@@ -387,62 +389,93 @@ function PostForm({route, navigation}) {
 }
 
 function Home({navigation}) {
+    const [visible, setVisible] = useState(false);
+    const [value, setValue] = useState('');
+
+    const handleCancel = () => {
+        setVisible(false);
+    };
+
+    const handleGo = () => {
+        if (value.length > 0) {
+            navigation.replace('Home', {
+                screen: 'Board',
+                params: {
+                    board: value
+                }
+            })
+        }
+
+        setVisible(false);
+    };
     return (
-        <Tab.Navigator
-            initialRouteName="List"
-            screenOptions={({route}) => ({
-                headerShown: route.name !== 'List',
-                headerRight: () => (
-                    route.name === 'Board' && typeof route.params === "object" && 'board' in route.params ?
-                        <TouchableHighlight onPress={() => {
-                            navigation.navigate('Form', {
-                                board: typeof route.params === 'object' && 'board' in route.params ? route.params.board : null,
-                                thread: typeof route.params === 'object' && 'thread' in route.params ? route.params.thread : null,
-                            })
-                        }}>
-                            <View style={{paddingRight: 10}}>
-                                <Ionicons name='create' size={24} color='#FF7920' />
-                            </View>
-                        </TouchableHighlight> : null
-                ),
-                tabBarIcon: ({focused, color, size}) => {
-                    let iconName;
+        <View style={{height: '100%'}}>
+            <Tab.Navigator
+                initialRouteName="List"
+                screenOptions={({route}) => ({
+                    headerShown: route.name !== 'List',
+                    headerRight: () => (
+                        route.name === 'Board' && typeof route.params === "object" && 'board' in route.params ?
+                            <TouchableHighlight onPress={() => {
+                                navigation.navigate('Form', {
+                                    board: typeof route.params === 'object' && 'board' in route.params ? route.params.board : null,
+                                    thread: typeof route.params === 'object' && 'thread' in route.params ? route.params.thread : null,
+                                })
+                            }}>
+                                <View style={{paddingRight: 10}}>
+                                    <Ionicons name='create' size={24} color='#FF7920' />
+                                </View>
+                            </TouchableHighlight> : null
+                    ),
+                    tabBarIcon: ({focused, color, size}) => {
+                        let iconName;
 
-                    if (route.name === 'List') {
-                        iconName = focused ? 'ios-list' : 'ios-list-outline';
-                    } else if (route.name === 'Board') {
-                        iconName = focused ? 'document-text' : 'document-text-outline';
-                    } else if (route.name === 'Latest') {
-                        iconName = focused ? 'newspaper' : 'newspaper-outline';
-                    }
+                        if (route.name === 'List') {
+                            iconName = focused ? 'ios-list' : 'ios-list-outline';
+                        } else if (route.name === 'Board') {
+                            iconName = focused ? 'document-text' : 'document-text-outline';
+                        } else if (route.name === 'Latest') {
+                            iconName = focused ? 'newspaper' : 'newspaper-outline';
+                        }
 
-                    return <Ionicons name={iconName} size={size} color={color} />;
-                },
-                tabBarActiveTintColor: '#FF7920',
-                tabBarInactiveTintColor: 'gray',
-            })}>
-            <Tab.Screen name="Board" component={BoardScreen} options={{
-                title: i18n.t('Board')
-            }} listeners={() => ({
-                tabPress: () => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                },
-            })} />
-            <Tab.Screen name="List" options={{
-                title: i18n.t('List')
-            }} component={BoardsScreen} listeners={() => ({
-                tabPress: () => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                },
-            })} />
-            <Tab.Screen name="Latest" options={{
-                title: i18n.t('Latest')
-            }} component={LatestScreen} listeners={() => ({
-                tabPress: () => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                },
-            })} />
-        </Tab.Navigator>
+                        return <Ionicons name={iconName} size={size} color={color} />;
+                    },
+                    tabBarActiveTintColor: '#FF7920',
+                    tabBarInactiveTintColor: 'gray',
+                })}>
+                <Tab.Screen name="Board" component={BoardScreen} options={{
+                    title: i18n.t('Board')
+                }} listeners={() => ({
+                    tabPress: () => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    },
+                    tabLongPress: () => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                        setVisible(true);
+                    },
+                })} />
+                <Tab.Screen name="List" options={{
+                    title: i18n.t('List')
+                }} component={BoardsScreen} listeners={() => ({
+                    tabPress: () => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    },
+                })} />
+                <Tab.Screen name="Latest" options={{
+                    title: i18n.t('Latest')
+                }} component={LatestScreen} listeners={() => ({
+                    tabPress: () => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    },
+                })} />
+            </Tab.Navigator>
+
+            <Dialog.Container contentStyle={{backgroundColor: '#2a2a2a'}} visible={visible} onBackdropPress={handleCancel}>
+                <Dialog.Input placeholder={"Example: test"} onChangeText={setValue} label={"Go to hidden board"}></Dialog.Input>
+                <Dialog.Button label="Go" bold color={"#ff7920"} onPress={handleGo} />
+                <Dialog.Button label="Cancel" onPress={handleCancel} />
+            </Dialog.Container>
+        </View>
     );
 }
 
@@ -490,9 +523,10 @@ function LatestScreen({navigation}) {
                     <Text style={styles.fileNameText}> {item['files'][0]['file_id']}{item['files'][0]['extension']}</Text>
                 </View>
                 : null}
-            {'body_nomarkup' in item ? <View style={styles.threadComContainer}>
-                <Text style={[styles.threadCom]}>{formatCom(item.body_nomarkup)}</Text>
-            </View> : null}
+            {'body_nomarkup' in item && item.body_nomarkup !== null && item.body_nomarkup.length > 0 ?
+                <View style={styles.threadComContainer}>
+                    <Text style={[styles.threadCom]}>{formatCom(item.body_nomarkup)}</Text>
+                </View> : null}
         </View>
         </TouchableOpacity>;
     };
@@ -640,6 +674,7 @@ function BoardScreen({route, navigation}) {
     const {rf} = route.params;
 
     const [refreshing, setRefreshing] = useState(false);
+    const [errorModal, setErrorModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [p, setP] = useState(0);
     const [apiResponse, setApiResponse] = useState([]);
@@ -659,7 +694,8 @@ function BoardScreen({route, navigation}) {
             }
             setApiResponse([...oldApiResponse, ...res]);
         }).catch(error => {
-            console.error(error);
+            setErrorModal(true);
+            return false;
         }).finally(() => {
             setRefreshing(false);
             setLoading(false);
@@ -670,6 +706,7 @@ function BoardScreen({route, navigation}) {
 
     useMemo(() => {
         getData(0, board);
+        navigation.setOptions({title: i18n.t('Board') + ' /' + board + '/'});
     }, [board, rf]);
 
     const MenuItems = [
@@ -738,6 +775,8 @@ function BoardScreen({route, navigation}) {
 
     return (
         <SafeAreaView style={styles.container}>
+            {errorModal ?
+                <LottieModal timeout={3000} title={"Error!"} bgColor={'rgba(130, 0, 0, 0)'} lottieSource={require('./assets/error.json')} hideModal={() => setErrorModal(false)} /> : null}
             <FlashList
                 contentContainerStyle={{paddingBottom: 100}}
                 ItemSeparatorComponent={separator}
@@ -955,7 +994,7 @@ function ThreadScreen({route, navigation}) {
             {postModalVisible ?
                 <LottieModal timeout={0} size={400} bgColor={'rgba(0, 0, 0, 0)'} lottieSource={require('./assets/confetti.json')} hideModal={() => setPostModalVisible(false)} /> : null}
             {modalVisible ?
-                <LottieModal title={"Reported!"} message={"We cannot respond and provide updates on reports."} timeout={1000} lottieSource={require('./assets/done.json')} hideModal={() => setModalVisible(false)} /> : null}
+                <LottieModal title={"Reported!"} message={"This post will be reported to our moderation team."} timeout={1000} lottieSource={require('./assets/done.json')} hideModal={() => setModalVisible(false)} /> : null}
             <ImageView
                 images={images}
                 imageIndex={currentImageIndex}
@@ -1031,7 +1070,7 @@ const processCom = (com, flatListRef, indexMap) => {
 }
 
 const detectVocaroo = (embed) => {
-    const regex = /https?:\/\/(\w+\.)?voca(?:\.ro|roo\.com)\/embed\/([a-zA-Z0-9]{2,12})/gm
+    const regex = /https?:\/\/(\w+\.)?voca(?:\.ro|roo\.com)\/(embed\/)?([a-zA-Z0-9]{2,12})/gm
 
     let m;
     let res = [];
@@ -1046,10 +1085,10 @@ const detectVocaroo = (embed) => {
     }
 
 
-    return res.length > 0 ? res[2] : false;
+    return res.length > 0 ? res[3] : false;
 }
 const detectVimeo = (embed) => {
-    const regex = /https?:\/\/(\w+\.)?player\.vimeo\.com\/video\/(\d{2,10})(\?.+)?/gm
+    const regex = /https?:\/\/(\w+\.)?(player\.)?vimeo\.com\/(video\/)?(\d{2,10})(\?.+)?/gm
 
     let m;
     let res = [];
@@ -1063,10 +1102,10 @@ const detectVimeo = (embed) => {
         });
     }
 
-    return res.length > 0 ? res[2] : false;
+    return res.length > 0 ? res[4] : false;
 }
 const detectDailyMotion = (embed) => {
-    const regex = /https?:\/\/(\w+\.)?dailymotion\.com\/embed\/video\/([a-zA-Z0-9]{2,10})(_.+)?/gm
+    const regex = /https?:\/\/(\w+\.)?dailymotion\.com\/(embed\/)?video\/([a-zA-Z0-9]{2,10})(_.+)?/gm
 
     let m;
     let res = [];
@@ -1080,14 +1119,14 @@ const detectDailyMotion = (embed) => {
         });
     }
 
-    return res.length > 0 ? res[2] : false;
+    return res.length > 0 ? res[3] : false;
 }
 
 const processEmbed = (item, clickable) => {
     if ('embed' in item && item.embed !== null) {
         const yt = detectYoutube(item.embed) === false ? getYoutubeId(item.embed) : detectYoutube(item.embed);
 
-        if (yt) { //TODO: vimeo, vocaroo, soundcloud, etc
+        if (yt) {
             let image = <Image
                 resizeMode={"cover"}
                 style={styles.postImage}
@@ -1121,59 +1160,72 @@ const processEmbed = (item, clickable) => {
 
         const vocaroo = detectVocaroo(item.embed);
         if (vocaroo) {
-            return <TouchableOpacity
-                style={{marginTop: 10}}
-                onPress={() => handleLinkPress('https://vocaroo.com/' + vocaroo)}
-            >
-                <View style={[styles.threadFile, {backgroundColor: '#CAFF70'}]}>
-                    <Ionicons style={{
-                        padding: 0,
-                        marginTop: -2,
-                        margin: 0,
+            const voca = <View style={[styles.threadFile, {backgroundColor: '#CAFF70'}]}>
+                <Ionicons style={{
+                    padding: 0,
+                    marginTop: -2,
+                    margin: 0,
 
-                    }} name='link-outline' size={24} color="#a554a5" />
-                    <Text style={[styles.fileNameText, {color: '#633263'}]}> {'vocaroo.com/' + vocaroo}</Text>
-                </View>
-            </TouchableOpacity>
+                }} name='link-outline' size={24} color="#a554a5" />
+                <Text style={[styles.fileNameText, {color: '#633263'}]}> {'vocaroo.com/' + vocaroo}</Text>
+            </View>
+
+
+            if (clickable) {
+                return <TouchableOpacity
+                    style={{marginTop: 10}}
+                    onPress={() => handleLinkPress('https://vocaroo.com/' + vocaroo)}
+                >{voca}</TouchableOpacity>
+            }
+
+            return <View style={{marginTop: 10}}>{voca}</View>;
         }
 
         const vimeo = detectVimeo(item.embed);
 
         if (vimeo) {
-            return <TouchableOpacity
-                style={{marginTop: 10}}
-                onPress={() => handleLinkPress('https://vimeo.com/' + vimeo)}
-            >
-                <View style={[styles.threadFile, {backgroundColor: '#00ADEF'}]}>
-                    <Ionicons style={{
-                        padding: 0,
-                        marginTop: -2,
-                        margin: 0,
+            const vim = <View style={[styles.threadFile, {backgroundColor: '#00ADEF'}]}>
+                <Ionicons style={{
+                    padding: 0,
+                    marginTop: -2,
+                    margin: 0,
 
-                    }} name='logo-vimeo' size={24} color="#ffffff" />
-                    <Text style={[styles.fileNameText, {color: '#ffffff'}]}> {'vimeo.com/' + vimeo}</Text>
-                </View>
-            </TouchableOpacity>
+                }} name='logo-vimeo' size={24} color="#ffffff" />
+                <Text style={[styles.fileNameText, {color: '#ffffff'}]}> {'vimeo.com/' + vimeo}</Text>
+            </View>
+
+            if (clickable) {
+                return <TouchableOpacity
+                    style={{marginTop: 10}}
+                    onPress={() => handleLinkPress('https://vimeo.com/' + vimeo)}
+                >{vim}</TouchableOpacity>
+            }
+
+            return <View style={{marginTop: 10}}>{vim}</View>;
         }
     }
 
     const dailyMotion = detectDailyMotion(item.embed);
 
     if (dailyMotion) {
-        return <TouchableOpacity
-            style={{marginTop: 10}}
-            onPress={() => handleLinkPress('https://dailymotion.com/video/' + dailyMotion)}
-        >
-            <View style={[styles.threadFile, {backgroundColor: '#ffffff', borderColor: '#232323'}]}>
-                <Ionicons style={{
-                    padding: 0,
-                    marginTop: -2,
-                    margin: 0,
+        const dm = <View style={[styles.threadFile, {backgroundColor: '#ffffff', borderColor: '#232323'}]}>
+            <Ionicons style={{
+                padding: 0,
+                marginTop: -2,
+                margin: 0,
 
-                }} name='link-outline' size={24} color="#232323" />
-                <Text style={[styles.fileNameText, {color: '#232323'}]}> {'dailymotion.com/video/' + dailyMotion}</Text>
-            </View>
-        </TouchableOpacity>
+            }} name='link-outline' size={24} color="#232323" />
+            <Text style={[styles.fileNameText, {color: '#232323'}]}> {'dailymotion.com/video/' + dailyMotion}</Text>
+        </View>
+
+        if (clickable) {
+            return <TouchableOpacity
+                style={{marginTop: 10}}
+                onPress={() => handleLinkPress('https://dailymotion.com/video/' + dailyMotion)}
+            >{dm}</TouchableOpacity>
+        }
+
+        return <View style={{marginTop: 10}}>{dm}</View>;
     }
 
     return null;
@@ -1299,7 +1351,7 @@ const detectYoutube = (str) => {
 const NEW_HASHTAG_FORMATTER = (string, listRef, indexMap) => {
 
     //cit
-    let NewString = reactStringReplace(string, /(>>[0-9]*)\s/gi, (match, i) => {
+    let NewString = reactStringReplace(string, /(>>[0-9]{1,999999999999999})\s/gi, (match, i) => {
         const postId = parseInt(match.replace(' ', '').replace('>>', ''));
         return <TouchableOpacity
             onPress={() => indexMap.indexOf(postId) > -1 && typeof listRef !== 'undefined' ? listRef.current.scrollToIndex({

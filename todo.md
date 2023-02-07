@@ -15,3 +15,5 @@
 * [x] citation (>>234)
 * [x] optimize citation???
 * [x] markdown in posts like [b]bold[/b] and other
+* [x] embed on latest screen
+* [ ] embed badge as component
