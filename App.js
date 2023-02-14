@@ -33,6 +33,8 @@ import ImageView from 'react-native-image-viewing'
 
 import {FlashList} from "@shopify/flash-list"
 
+import {StatusBar} from 'expo-status-bar';
+
 import reactStringReplace from 'react-string-replace';
 
 import Dialog from "react-native-dialog";
@@ -68,6 +70,9 @@ import {
     reportPost
 } from './providers/deadach';
 
+let moment = require('moment');
+require('moment/locale/uk');
+
 enableScreens();
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -84,10 +89,12 @@ const i18n = new I18n(translations);
 
 i18n.locale = getLocales()[0].languageCode;
 i18n.enableFallback = true;
+moment.locale(i18n.locale);
 
 export default function App() {
     return (
         <RootSiblingParent>
+            <StatusBar style="light" />
             <HoldMenuProvider
                 theme="dark"
                 iconComponent={Ionicons}
@@ -511,12 +518,19 @@ function LatestScreen({navigation}) {
                 <Text style={styles.threadBoard}>/{item.board}/</Text>
                 <Text style={styles.threadId}>#{item.id}</Text>
                 <Text style={styles.threadName}>{item.name}</Text>
-                <Text style={styles.threadSub}>{item.subject}</Text>
+                <Text style={styles.threadSub}>{typeof item.sub !== 'undefined' ? item.sub.replace(/^(.{25}[^\s]*).*/, "$1") + (item.sub.length > 25 ? '...' : '') : ''}</Text>
+                <View style={{flex: 1}}>
+                    <Text style={{
+                        textAlign: 'right',
+                        color: '#787878',
+                        fontSize: 12,
+                    }}>{moment.unix(item.time).fromNow()}</Text>
+                </View>
             </View>
             {processEmbed(item, false)}
             {'files' in item && item['files'] !== null && item['files'].length > 0 && item['files'][0]['extension'] !== 'webm' && item['files'][0]['extension'] !== 'mp4' ?
-                <Image resizeMode={"cover"}
-                       style={styles.postImage} source={{uri: HOST + '/' + item['files'][0]['file_path']}} /> : null}
+                <View style={{paddingTop: 15}}><Image resizeMode={"cover"}
+                                                      style={styles.postImage} source={{uri: HOST + '/' + item['files'][0]['file_path']}} /></View> : null}
             {'files' in item && item['files'] !== null && item['files'].length > 0 && (item['files'][0]['extension'] === 'webm' || item['files'][0]['extension'] === 'mp4') ?
                 <View style={styles.threadFile}>
                     <Ionicons name='cloud-download-outline' size={24} color="#FFFFFF" />
@@ -616,6 +630,9 @@ function BoardsScreen({navigation}) {
                             board: item.board
                         }
                     })}
+                    onLongPress={() => {
+                        //showActionMenuComponent
+                    }}
                 >
                     <Text style={styles.item}>{item.title.replace(/<[^>]+>/g, '')}</Text>
                 </TouchableOpacity>}
@@ -640,7 +657,7 @@ function BoardsScreen({navigation}) {
                     <View style={styles.modalView}>
                         <Text style={styles.modalText}>{i18n.t('AgreeToTerms')}</Text>
                         <Pressable onPress={() => {
-                            Linking.openURL('https://deada.ch/rules.html'); //TODO: move to config
+                            Linking.openURL(HOST + '/rules.html'); //TODO: move to config
                         }}><Text style={styles.modalLinks}></Text></Pressable>
                         <Pressable
                             style={[styles.button, styles.buttonClose]}
@@ -786,7 +803,14 @@ function BoardScreen({route, navigation}) {
                 <View style={styles.threadHead}>
                     <Text style={styles.threadId}>#{item.no}</Text>
                     <Text style={styles.threadName}>{item.name}</Text>
-                    <Text style={styles.threadSub}>{item.sub}</Text>
+                    <Text style={styles.threadSub}>{typeof item.sub !== 'undefined' ? item.sub.replace(/^(.{25}[^\s]*).*/, "$1") + (item.sub.length > 25 ? '...' : '') : ''}</Text>
+                    <View style={{flex: 1}}>
+                        <Text style={{
+                            textAlign: 'right',
+                            color: '#787878',
+                            fontSize: 12,
+                        }}>{moment.unix(item.last_modified).fromNow()}</Text>
+                    </View>
                 </View>
                 {processFiles(board, item, false)}
                 {processEmbed(item, false)}
@@ -818,7 +842,7 @@ function BoardScreen({route, navigation}) {
                         setOnEndReachedCalledDuringMomentum(true);
                     }
                 }}
-                onEndReachedThreshold={0.05}
+                onEndReachedThreshold={0.3}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={() => {
                         getData(0, board);
@@ -1004,8 +1028,15 @@ function ThreadScreen({route, navigation}) {
                 }]}>
                     <View style={styles.threadHead}>
                         <Text style={styles.threadId}>#{item.no}</Text>
-                        <Text style={styles.threadName}>{item.name}: </Text>
-                        <Text style={styles.threadSub}>{item.sub}</Text>
+                        <Text style={styles.threadName}>{item.name}</Text>
+                        <Text style={styles.threadSub}>{typeof item.sub !== 'undefined' ? item.sub.replace(/^(.{25}[^\s]*).*/, "$1") + (item.sub.length > 25 ? '...' : '') : ''}</Text>
+                        <View style={{flex: 1}}>
+                            <Text style={{
+                                textAlign: 'right',
+                                color: '#787878',
+                                fontSize: 12,
+                            }}>{moment.unix(item.last_modified).fromNow()}</Text>
+                        </View>
                     </View>
                     {processFiles(board, item, true, onSelect)}
                     {processEmbed(item, true)}
@@ -1033,7 +1064,7 @@ function ThreadScreen({route, navigation}) {
             <FlashList
                 ref={flatlistRef}
                 data={apiResponse}
-                estimatedItemSize={50}
+                estimatedItemSize={40}
                 contentContainerStyle={{paddingBottom: 20}}
                 ItemSeparatorComponent={separator}
                 refreshControl={
@@ -1155,6 +1186,7 @@ const processEmbed = (item, clickable) => {
 
         if (yt) {
             let image = <Image
+                key={"yt_" + yt}
                 resizeMode={"cover"}
                 style={styles.postImage}
                 source={{

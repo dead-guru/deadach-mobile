@@ -106,8 +106,8 @@ const styles = StyleSheet.create({
         marginLeft: 5
     },
     threadHead: {
+        flex: 1,
         flexDirection: 'row',
-        flexWrap: 'wrap',
         padding: 10,
         paddingBottom: 0,
         width: "100%",
