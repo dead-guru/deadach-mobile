@@ -1,4 +1,5 @@
 import {StyleSheet} from "react-native";
+import {normalize} from "./normalizeFont";
 
 const styles = StyleSheet.create({
     input: {
@@ -29,12 +30,12 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
     },
     item: {
-        color: '#fff',
+        color: '#ffffff',
         width: "100%",
-        padding: 10,
-        marginLeft: 20,
+        marginLeft: 60,
+        paddingTop: 5,
+        paddingBottom: 10,
         fontSize: 18,
-        height: 44,
     },
     thread: {
         flexDirection: 'column',
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
     threadCom: {
         color: '#fff',
         backgroundColor: '#000',
-        fontSize: 14,
+        fontSize: normalize(14),
         width: 'auto',
         paddingBottom: 15,
     },
@@ -61,11 +62,11 @@ const styles = StyleSheet.create({
     },
     threadImagesCount: {
         color: '#04b8f1',
-        fontSize: 12,
+        fontSize: normalize(12),
     },
     threadImagesName: {
         color: '#007599',
-        fontSize: 12,
+        fontSize: normalize(12),
         marginLeft: 5
     },
     threadFile: {
@@ -81,29 +82,32 @@ const styles = StyleSheet.create({
     },
     threadName: {
         color: '#FF7920',
-        fontSize: 12,
-        marginLeft: 5
+        fontSize: normalize(12),
+        marginLeft: 5,
+        maxWidth: 100,
     },
     threadId: {
         color: '#868686',
-        fontSize: 12,
+        fontSize: normalize(12),
         fontWeight: "bold"
     },
     threadBoard: {
         color: '#bc802f',
-        fontSize: 12,
+        fontSize: normalize(12),
         fontWeight: "bold",
         marginRight: 5
     },
     threadAction: {
         color: '#a9a9a9',
-        fontSize: 12,
+        fontSize: normalize(12),
         fontStyle: "italic",
     },
     threadSub: {
         color: '#a9a9a9',
-        fontSize: 12,
-        marginLeft: 5
+        fontSize: normalize(12),
+        marginLeft: 5,
+        maxWidth: 190,
+        overflow: 'hidden',
     },
     threadHead: {
         flex: 0,
@@ -128,7 +132,8 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     threadBottomText: {
-        color: '#a9a9a9'
+        color: '#a9a9a9',
+        fontSize: normalize(14),
     },
     postImage: {
         height: 200,
@@ -194,7 +199,7 @@ const styles = StyleSheet.create({
         paddingRight: 10
     },
     headTitleText: {
-        fontSize: 90, marginTop: 30, fontWeight: "bold", color: '#ffffff'
+        fontSize: normalize(62, true), marginTop: 30, fontWeight: "bold", color: '#ffffff'
     },
     link: {
         color: '#ff7920'
@@ -224,7 +229,7 @@ const styles = StyleSheet.create({
         head: {
             color: '#ff7920',
             fontWeight: 'bold',
-            fontSize: 18,
+            fontSize: normalize(18),
             textTransform: 'uppercase'
         },
         spoiler: {color: '#282828', fontStyle: 'italic', textDecorationStyle: 'double'}

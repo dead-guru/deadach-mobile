@@ -69,6 +69,7 @@ import {
     postViaApi,
     reportPost
 } from './providers/deadach';
+import {normalize} from "./normalizeFont";
 
 let moment = require('moment');
 require('moment/locale/uk');
@@ -515,16 +516,16 @@ function LatestScreen({navigation}) {
             })}
         ><View style={[styles.thread, {paddingBottom: 10}]}>
             <View style={styles.threadHead}>
-                <Text style={styles.threadAction}>{item.thread === null ? i18n.t('Thread') : i18n.t('Comment')} {i18n.t('in')} </Text>
-                <Text style={styles.threadBoard}>/{item.board}/</Text>
-                <Text style={styles.threadId}>#{item.id}</Text>
-                <Text style={styles.threadName}>{item.name}</Text>
-                <Text style={styles.threadSub}>{typeof item.subject !== 'undefined' && item.subject !== null ? item.subject.replace(/^(.{25}[^\s]*).*/, "$1") + (item.subject.length > 25 ? '...' : '') : ''}</Text>
+                <Text numberOfLines={1} style={styles.threadAction}>{item.thread === null ? i18n.t('Thread') : i18n.t('Comment')} {i18n.t('in')} </Text>
+                <Text numberOfLines={1} style={styles.threadBoard}>/{item.board}/</Text>
+                <Text numberOfLines={1} style={styles.threadId}>#{item.id}</Text>
+                <Text numberOfLines={1} style={styles.threadName}>{item.name}</Text>
+                <Text numberOfLines={1} style={styles.threadSub}>{typeof item.subject !== 'undefined' && item.subject !== null ? item.subject.replace(/^(.{25}[^\s]*).*/, "$1") + (item.subject.length > 25 ? '...' : '') : ''}</Text>
                 <View style={{flex: 1}}>
                     <Text style={{
                         textAlign: 'right',
                         color: '#787878',
-                        fontSize: 12,
+                        fontSize: normalize(12),
                     }}>{moment.unix(item.time).fromNow()}</Text>
                 </View>
             </View>
@@ -640,7 +641,8 @@ function BoardsScreen({navigation}) {
                 renderSectionHeader={({section}) => (
                     <View style={styles.sectionHeaderContainer}>
                         {/*<Ionicons name='radio-button-off-outline' size={18} color='#FF7920' />*/}
-                        <Text style={styles.sectionHeader}> {section.title.replace(/<[^>]+>/g, '')}</Text>
+                        <Text style={styles.sectionHeader}><Ionicons name={'chevron-forward'} size={18} /> {section.title.replace(/<[^>]+>/g, '')}
+                        </Text>
                     </View>
 
                 )}
@@ -802,13 +804,13 @@ function BoardScreen({route, navigation}) {
             ><View style={styles.thread}>
                 <View style={styles.threadHead}>
                     <Text style={styles.threadId}>#{item.no}</Text>
-                    <Text style={styles.threadName}>{item.name}</Text>
-                    <Text style={styles.threadSub}>{typeof item.sub !== 'undefined' ? item.sub.replace(/^(.{25}[^\s]*).*/, "$1") + (item.sub.length > 25 ? '...' : '') : ''}</Text>
+                    <Text numberOfLines={1} style={styles.threadName}>{item.name}</Text>
+                    <Text numberOfLines={1} style={styles.threadSub}>{typeof item.sub !== 'undefined' ? item.sub.replace(/^(.{25}[^\s]*).*/, "$1") + (item.sub.length > 25 ? '...' : '') : ''}</Text>
                     <View style={{flex: 1}}>
-                        <Text style={{
+                        <Text numberOfLines={1} style={{
                             textAlign: 'right',
                             color: '#787878',
-                            fontSize: 12,
+                            fontSize: normalize(12),
                         }}>{moment.unix(item.last_modified).fromNow()}</Text>
                     </View>
                 </View>
@@ -818,9 +820,10 @@ function BoardScreen({route, navigation}) {
                     <Text style={[styles.threadCom]}>{formatCom(item.com_nomarkup)}</Text>
                 </View> : null}
                 <View style={styles.threadBottom}>
-                    <Text style={styles.threadBottomText}>{item.replies} <Ionicons name={'chatbox-outline'} size={14} /></Text>
+                    <Text style={styles.threadBottomText}>{item.replies} <Ionicons name={'chatbox'} size={14} /></Text>
                     <Text style={styles.threadBottomText}><Ionicons name={'ellipsis-horizontal'} size={14} /></Text>
-                    <Text style={styles.threadBottomText}>{item.files_count} <Ionicons name={'images-outline'} size={14} />
+                    <Text style={styles.threadBottomText}>
+                        {item.files_count} <Ionicons name={'images'} size={14} />
                     </Text>
                 </View>
             </View>
@@ -1033,13 +1036,13 @@ function ThreadScreen({route, navigation}) {
                 }]}>
                     <View style={styles.threadHead}>
                         <Text style={styles.threadId}>#{item.no}</Text>
-                        <Text style={styles.threadName}>{item.name}</Text>
-                        <Text style={styles.threadSub}>{typeof item.sub !== 'undefined' ? item.sub.replace(/^(.{25}[^\s]*).*/, "$1") + (item.sub.length > 25 ? '...' : '') : ''}</Text>
+                        <Text numberOfLines={1} style={styles.threadName}>{item.name}</Text>
+                        <Text numberOfLines={1} style={styles.threadSub}>{typeof item.sub !== 'undefined' ? item.sub.replace(/^(.{25}[^\s]*).*/, "$1") + (item.sub.length > 25 ? '...' : '') : ''}</Text>
                         <View style={{flex: 1}}>
-                            <Text style={{
+                            <Text numberOfLines={1} style={{
                                 textAlign: 'right',
                                 color: '#787878',
-                                fontSize: 12,
+                                fontSize: normalize(12),
                             }}>{moment.unix(item.last_modified).fromNow()}</Text>
                         </View>
                     </View>
