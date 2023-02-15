@@ -106,12 +106,29 @@ const styles = StyleSheet.create({
         marginLeft: 5
     },
     threadHead: {
-        flex: 1,
+        flex: 0,
         flexDirection: 'row',
+        flexWrap: 'wrap',
         padding: 10,
         paddingBottom: 0,
+        display: 'flex',
         width: "100%",
         backgroundColor: "#000000",
+    },
+    threadBottom: {
+        flex: 0,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        padding: 10,
+        paddingBottom: 0,
+        paddingTop: 0,
+        display: 'flex',
+        width: "100%",
+        backgroundColor: "#000000",
+        justifyContent: 'space-between',
+    },
+    threadBottomText: {
+        color: '#a9a9a9'
     },
     postImage: {
         height: 200,

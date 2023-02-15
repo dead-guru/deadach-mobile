@@ -56,7 +56,22 @@ export function getBoardThreadsWithBody(board, page) {
                 }
                 for (const thread of json[page]['threads']) {
                     await getBoardThreadFromApi(board, thread.no).then((th) => {
-                        threads.push(th[0]);
+
+                        let firstThread = th[0];
+
+                        firstThread['replies'] = th.length - 1;
+                        firstThread['files_count'] = 0;
+
+                        for (const post of th) {
+                            if (typeof post.filename !== 'undefined') {
+                                firstThread['files_count']++;
+                            }
+                            if (typeof post.extra_files !== 'undefined') {
+                                firstThread['files_count'] += post.extra_files.length;
+                            }
+                        }
+
+                        threads.push(firstThread);
                     }).catch(error => {
                         console.error(error);
                     });

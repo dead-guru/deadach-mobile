@@ -93,12 +93,13 @@ moment.locale(i18n.locale);
 
 export default function App() {
     return (
-        <RootSiblingParent>
-            <StatusBar style="light" />
-            <HoldMenuProvider
-                theme="dark"
-                iconComponent={Ionicons}
-            >
+        <HoldMenuProvider
+            theme="dark"
+            iconComponent={Ionicons}
+        >
+            <RootSiblingParent>
+                <StatusBar style="light" />
+
                 <NavigationContainer theme={DarkTheme}>
                     <Stack.Navigator
                         initialRouteName="Home"
@@ -114,7 +115,7 @@ export default function App() {
                             headerShown: true
                         }} />
                     </Stack.Navigator>
-                </NavigationContainer></HoldMenuProvider></RootSiblingParent>
+                </NavigationContainer></RootSiblingParent></HoldMenuProvider>
     );
 }
 
@@ -518,7 +519,7 @@ function LatestScreen({navigation}) {
                 <Text style={styles.threadBoard}>/{item.board}/</Text>
                 <Text style={styles.threadId}>#{item.id}</Text>
                 <Text style={styles.threadName}>{item.name}</Text>
-                <Text style={styles.threadSub}>{typeof item.sub !== 'undefined' ? item.sub.replace(/^(.{25}[^\s]*).*/, "$1") + (item.sub.length > 25 ? '...' : '') : ''}</Text>
+                <Text style={styles.threadSub}>{typeof item.subject !== 'undefined' && item.subject !== null ? item.subject.replace(/^(.{25}[^\s]*).*/, "$1") + (item.subject.length > 25 ? '...' : '') : ''}</Text>
                 <View style={{flex: 1}}>
                     <Text style={{
                         textAlign: 'right',
@@ -751,10 +752,9 @@ function BoardScreen({route, navigation}) {
         openTip();
     }, [board, rf]);
 
-    const MenuItems = [
+    const MenuItems = useMemo(() => [
         {
-            text: 'Post Actions', icon: 'copy-outline', isTitle: true, onPress: () => {
-            }
+            text: 'Thread Actions', isTitle: true
         },
         {
             text: 'Reply', icon: 'arrow-redo-outline', onPress: (board, thread) => {
@@ -778,7 +778,7 @@ function BoardScreen({route, navigation}) {
                 });
             }
         },
-    ];
+    ], []);
 
     const keyExtractor = useCallback((item) => {
         return `threads_screen-${item.no}`;
@@ -817,6 +817,12 @@ function BoardScreen({route, navigation}) {
                 {'com_nomarkup' in item ? <View style={styles.threadComContainer}>
                     <Text style={[styles.threadCom]}>{formatCom(item.com_nomarkup)}</Text>
                 </View> : null}
+                <View style={styles.threadBottom}>
+                    <Text style={styles.threadBottomText}>{item.replies} <Ionicons name={'chatbox-outline'} size={14} /></Text>
+                    <Text style={styles.threadBottomText}><Ionicons name={'ellipsis-horizontal'} size={14} /></Text>
+                    <Text style={styles.threadBottomText}>{item.files_count} <Ionicons name={'images-outline'} size={14} />
+                    </Text>
+                </View>
             </View>
             </TouchableOpacity>
         </HoldItem>
@@ -969,7 +975,7 @@ function ThreadScreen({route, navigation}) {
 
     const [modalVisible, setModalVisible] = useState(false);
 
-    const MenuItems = [
+    const MenuItems = useMemo(() => [
         {
             text: 'Post Actions', icon: 'copy-outline', isTitle: true, onPress: (postId) => {
             }
@@ -1006,7 +1012,7 @@ function ThreadScreen({route, navigation}) {
                 });
             }
         },
-    ];
+    ], []);
 
     const keyExtractor = (item) => `post-${item.no}`;
 
@@ -1016,7 +1022,6 @@ function ThreadScreen({route, navigation}) {
                 paddingBottom: 5,
                 backgroundColor: '#000000'
             }}
-            menuAnchorPosition="top-center"
             items={MenuItems} closeOnTap actionParams={{
             Reply: [board, thread, item.no],
             Copy: [board, thread, item.no],
@@ -1041,10 +1046,8 @@ function ThreadScreen({route, navigation}) {
                     {processFiles(board, item, true, onSelect)}
                     {processEmbed(item, true)}
                     {'com_nomarkup' in item ? processCom(item.com_nomarkup, flatlistRef, indexMap) : null}
-                </View>
-            </View>
+                </View></View>
         </HoldItem>
-
     };
 
     return (
