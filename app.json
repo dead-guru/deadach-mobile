@@ -2,7 +2,7 @@
   "expo": {
     "name": "deadach",
     "slug": "deadach",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "jsEngine": "hermes",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -38,7 +38,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "versionCode": 27,
+      "versionCode": 30,
       "package": "com.assada.deadach",
       "blockedPermissions": [
         "CAMERA",

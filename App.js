@@ -461,6 +461,7 @@ function Home({navigation}) {
                     tabLongPress: () => {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
                         setVisible(true);
+                        AsyncStorage.clear();
                     },
                 })} />
                 <Tab.Screen name="List" options={{
@@ -650,11 +651,14 @@ function BoardsScreen({navigation}) {
             />
             <Modal
                 animationType="slide"
+                statusBarTranslucent={true}
+                hardwareAccelerated={true}
                 transparent={true}
                 visible={modalVisible}
                 onRequestClose={() => {
-                    setModalVisible(!modalVisible);
-                    storeData('true'); //TODO: ???
+                    return false;
+                    //setModalVisible(!modalVisible);
+                    //storeData('true'); //TODO: ???
                 }}>
                 <View style={styles.centeredView}>
                     <View style={styles.modalView}>
