@@ -1,3 +1,5 @@
+import {isPostBlocked} from "../blockPost";
+
 const HOST = 'https://deada.ch';
 
 export function getBoardThreadsFromApi(board) {
@@ -14,8 +16,20 @@ export function getBoardThreadsFromApi(board) {
 export function getBoardThreadFromApi(board, thread) {
     return fetch(HOST + '/' + board + '/res/' + thread + '.json' + '?random_number=' + new Date().getTime())
         .then(response => response.json())
-        .then(json => {
-            return json['posts'];
+        .then(async json => {
+            let posts = json['posts'];
+            let p = [];
+            for (const post of posts) {
+                await isPostBlocked(board, thread, post.no).then((blocked) => {
+                    post.blocked = blocked;
+                    p.push(post);
+                }); //TODO: detect blocked thread
+                /*await isPostBlocked(board, thread, thread).then((blocked) => {
+                    post.thread_blocked = blocked;
+                    p.push(post);
+                });*/
+            }
+            return p;
         })
         .catch(error => {
             console.error(error);
@@ -154,8 +168,22 @@ export async function getCaptcha() {
 export async function getLatest() {
     return fetch(HOST + '/recent.json' + '?random_number=' + new Date().getTime())
         .then(response => response.json())
-        .then(json => {
-            return json;
+        .then(async json => {
+            let p = [];
+            for (const post of json['recent_posts']) {
+                const board = post.board
+                const thread = post.thread === null ? post.id : post.thread
+                const postId = post.id;
+                await isPostBlocked(board, thread, postId).then((blocked) => {
+                    post.blocked = blocked;
+                    p.push(post);
+                });
+                /*await isPostBlocked(board, thread, thread).then((blocked) => {
+                    post.thread_blocked = blocked;
+                    p.push(post);
+                });*/
+            }
+            return p;
         })
         .catch(error => {
             console.error(error);

@@ -70,6 +70,7 @@ import {
     reportPost
 } from './providers/deadach';
 import {normalize} from "./normalizeFont";
+import {blockPost} from "./blockPost";
 
 let moment = require('moment');
 require('moment/locale/uk');
@@ -93,15 +94,62 @@ i18n.enableFallback = true;
 moment.locale(i18n.locale);
 
 export default function App() {
+    const [modalVisible, setModalVisible] = useState(false);
+    const storeData = async (value) => {
+        try {
+            await AsyncStorage.setItem('@terms_new', value)
+        } catch (e) {
+            Alert.alert(i18n.t('ApiError'), e.toString());
+        }
+    }
+    const getTermsModal = async () => {
+        try {
+            const value = await AsyncStorage.getItem('@terms_new')
+            if (value !== null) {
+                setModalVisible(!value)
+            } else {
+                setModalVisible(true)
+            }
+        } catch (e) {
+            Alert.alert(i18n.t('ApiError'), e.toString());
+        }
+    }
+
     return (
         <HoldMenuProvider
             theme="dark"
             iconComponent={Ionicons}
         >
+            <Modal
+                animationType="slide"
+                statusBarTranslucent={true}
+                hardwareAccelerated={true}
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => {
+                    return false;
+                }}>
+                <View style={styles.centeredView}>
+                    <View style={styles.modalView}>
+                        <Text style={styles.modalText}>{i18n.t('AgreeToTerms')}</Text>
+                        <Pressable onPress={() => {
+                            Linking.openURL(HOST + '/rules.html'); //TODO: move to config
+                        }}><Text style={styles.modalLinks}></Text></Pressable>
+                        <Pressable
+                            style={[styles.button, styles.buttonClose]}
+                            onPress={() => {
+                                setModalVisible(!modalVisible);
+                                storeData('true');
+                            }}>
+                            <Text style={styles.textStyle}>{i18n.t('AcceptTerms')}</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
             <RootSiblingParent>
                 <StatusBar style="light" />
 
-                <NavigationContainer theme={DarkTheme}>
+                <NavigationContainer onReady={getTermsModal} theme={DarkTheme}>
                     <Stack.Navigator
                         initialRouteName="Home"
                     >
@@ -113,7 +161,7 @@ export default function App() {
                         />
                         <Stack.Screen name="Thread" component={ThreadScreen} options={{
                             headerBackTitle: i18n.t('Back'),
-                            headerShown: true
+                            headerShown: true,
                         }} />
                     </Stack.Navigator>
                 </NavigationContainer></RootSiblingParent></HoldMenuProvider>
@@ -490,66 +538,94 @@ function Home({navigation}) {
 }
 
 function LatestScreen({navigation}) {
-
     const [apiResponse, setApiResponse] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
+    const [modalVisible, setModalVisible] = useState(false);
 
     const getData = () => {
-        setRefreshing(true)
+        setRefreshing(true);
         getLatest().then((response) => {
-            setApiResponse(response['recent_posts']);
+            setApiResponse(response);
             setRefreshing(false);
         });
     }
+
+    const keyExtractor = (item) => `latest_${item.thread}_${item.id}_${item.board}`;
 
     useEffect(() => {
         getData();
     }, []);
 
-    const keyExtractor = (item) => `latest-${item.id}-${item.board}`;
+    const MenuItems = [
+        {
+            text: 'Post Actions', isTitle: true
+        },
+        {
+            text: 'Report',
+            isDestructive: true,
+            icon: 'megaphone',
+            onPress: (board, thread, postId) => {
+                reportPost(board, thread, postId).then((res) => {
+                    setModalVisible(true)
+                }).catch((error) => {
+                    console.error(error)
+                });
+            }
+        },
+    ];
 
     const renderItem = ({item}) => {
-        return <TouchableOpacity
-            onPress={() => navigation.navigate('Thread', {
-                board: item.board,
-                thread: item.thread === null ? item.id : item.thread,
-                down: item.id
-            })}
-        ><View style={[styles.thread, {paddingBottom: 10}]}>
-            <View style={styles.threadHead}>
-                <Text numberOfLines={1} style={styles.threadAction}>{item.thread === null ? i18n.t('Thread') : i18n.t('Comment')} {i18n.t('in')} </Text>
-                <Text numberOfLines={1} style={styles.threadBoard}>/{item.board}/</Text>
-                <Text numberOfLines={1} style={styles.threadId}>#{item.id}</Text>
-                <Text numberOfLines={1} style={styles.threadName}>{item.name}</Text>
-                <Text numberOfLines={1} style={styles.threadSub}>{typeof item.subject !== 'undefined' && item.subject !== null ? item.subject.replace(/^(.{25}[^\s]*).*/, "$1") + (item.subject.length > 25 ? '...' : '') : ''}</Text>
-                <View style={{flex: 1}}>
-                    <Text style={{
-                        textAlign: 'right',
-                        color: '#787878',
-                        fontSize: normalize(12),
-                    }}>{moment.unix(item.time).fromNow()}</Text>
+        return item.blocked === true ?
+            <Text style={{color: '#787878', padding: 20, paddingLeft: 10}}>#{item.no} BLOCKED by you!</Text> : <HoldItem
+                containerStyles={{
+                    paddingBottom: 10
+                }}
+                items={MenuItems} closeOnTap actionParams={{
+                Report: [item.board, item.thread === null ? item.id : item.thread, item.id],
+            }}><TouchableOpacity
+                onPress={() => navigation.navigate('Thread', {
+                    board: item.board,
+                    thread: item.thread === null ? item.id : item.thread,
+                    down: item.id
+                })}
+            >
+                <View style={[styles.thread, {paddingBottom: 10}]}>
+                    <View style={styles.threadHead}>
+                        <Text numberOfLines={1} style={styles.threadAction}>{item.thread === null ? i18n.t('Thread') : i18n.t('Comment')} {i18n.t('in')} </Text>
+                        <Text numberOfLines={1} style={styles.threadBoard}>/{item.board}/</Text>
+                        <Text numberOfLines={1} style={styles.threadId}>#{item.id}</Text>
+                        <Text numberOfLines={1} style={styles.threadName}>{item.name}</Text>
+                        <Text numberOfLines={1} style={styles.threadSub}>{typeof item.subject !== 'undefined' && item.subject !== null ? item.subject.replace(/^(.{25}[^\s]*).*/, "$1") + (item.subject.length > 25 ? '...' : '') : ''}</Text>
+                        <View style={{flex: 1}}>
+                            <Text style={{
+                                textAlign: 'right',
+                                color: '#787878',
+                                fontSize: normalize(12),
+                            }}>{moment.unix(item.time).fromNow()}</Text>
+                        </View>
+                    </View>
+                    {processEmbed(item, false)}
+                    {'files' in item && item['files'] !== null && item['files'].length > 0 && item['files'][0]['extension'] !== 'webm' && item['files'][0]['extension'] !== 'mp4' ?
+                        <View style={{paddingTop: 15}}><Image resizeMode={"cover"}
+                                                              style={styles.postImage} source={{uri: HOST + '/' + item['files'][0]['file_path']}} /></View> : null}
+                    {'files' in item && item['files'] !== null && item['files'].length > 0 && (item['files'][0]['extension'] === 'webm' || item['files'][0]['extension'] === 'mp4') ?
+                        <View style={styles.threadFile}>
+                            <Ionicons name='cloud-download-outline' size={24} color="#FFFFFF" />
+                            <Text style={styles.fileNameText}> {item['files'][0]['file_id']}{item['files'][0]['extension']}</Text>
+                        </View>
+                        : null}
+                    {'body_nomarkup' in item && item.body_nomarkup !== null && item.body_nomarkup.length > 0 ?
+                        <View style={styles.threadComContainer}>
+                            <Text style={[styles.threadCom]}>{formatCom(item.body_nomarkup)}</Text>
+                        </View> : null}
                 </View>
-            </View>
-            {processEmbed(item, false)}
-            {'files' in item && item['files'] !== null && item['files'].length > 0 && item['files'][0]['extension'] !== 'webm' && item['files'][0]['extension'] !== 'mp4' ?
-                <View style={{paddingTop: 15}}><Image resizeMode={"cover"}
-                                                      style={styles.postImage} source={{uri: HOST + '/' + item['files'][0]['file_path']}} /></View> : null}
-            {'files' in item && item['files'] !== null && item['files'].length > 0 && (item['files'][0]['extension'] === 'webm' || item['files'][0]['extension'] === 'mp4') ?
-                <View style={styles.threadFile}>
-                    <Ionicons name='cloud-download-outline' size={24} color="#FFFFFF" />
-                    <Text style={styles.fileNameText}> {item['files'][0]['file_id']}{item['files'][0]['extension']}</Text>
-                </View>
-                : null}
-            {'body_nomarkup' in item && item.body_nomarkup !== null && item.body_nomarkup.length > 0 ?
-                <View style={styles.threadComContainer}>
-                    <Text style={[styles.threadCom]}>{formatCom(item.body_nomarkup)}</Text>
-                </View> : null}
-        </View>
-        </TouchableOpacity>;
+            </TouchableOpacity></HoldItem>;
     };
 
     return (
         <View style={styles.container} onLayout={getData}>
+            {modalVisible ?
+                <LottieModal title={"Reported!"} bgColor={'rgba(120,202,112,0.45)'} message={"This post will be reported to our moderation team."} timeout={1000} lottieSource={require('./assets/done.json')} hideModal={() => setModalVisible(false)} /> : null}
             <FlashList
                 contentContainerStyle={{paddingBottom: 100}}
                 ItemSeparatorComponent={separator}
@@ -577,29 +653,6 @@ function LatestScreen({navigation}) {
 function BoardsScreen({navigation}) {
     const [apiResponse, setApiResponse] = useState([]);
 
-    const [modalVisible, setModalVisible] = useState(false);
-
-    const storeData = async (value) => {
-        try {
-            await AsyncStorage.setItem('@terms', value)
-        } catch (e) {
-            Alert.alert(i18n.t('ApiError'), e.toString());
-        }
-    }
-
-    const getTermsModal = async () => {
-        try {
-            const value = await AsyncStorage.getItem('@terms')
-            if (value !== null) {
-                setModalVisible(!value)
-            } else {
-                setModalVisible(true)
-            }
-        } catch (e) {
-            Alert.alert(i18n.t('ApiError'), e.toString());
-        }
-    }
-
     useMemo(() => {
         let ss = [];
         getBoarsFromApi().then((res) => {
@@ -611,7 +664,6 @@ function BoardsScreen({navigation}) {
                 ss.push({title: key, data: b});
             }
             setApiResponse(ss);
-            getTermsModal();
         });
     }, [])
 
@@ -649,34 +701,6 @@ function BoardsScreen({navigation}) {
                 )}
                 keyExtractor={item => `basicListEntry-${item.board}`}
             />
-            <Modal
-                animationType="slide"
-                statusBarTranslucent={true}
-                hardwareAccelerated={true}
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => {
-                    return false;
-                    //setModalVisible(!modalVisible);
-                    //storeData('true'); //TODO: ???
-                }}>
-                <View style={styles.centeredView}>
-                    <View style={styles.modalView}>
-                        <Text style={styles.modalText}>{i18n.t('AgreeToTerms')}</Text>
-                        <Pressable onPress={() => {
-                            Linking.openURL(HOST + '/rules.html'); //TODO: move to config
-                        }}><Text style={styles.modalLinks}></Text></Pressable>
-                        <Pressable
-                            style={[styles.button, styles.buttonClose]}
-                            onPress={() => {
-                                setModalVisible(!modalVisible);
-                                storeData('true');
-                            }}>
-                            <Text style={styles.textStyle}>{i18n.t('AcceptTerms')}</Text>
-                        </Pressable>
-                    </View>
-                </View>
-            </Modal>
         </View>
     );
 }
@@ -758,7 +782,9 @@ function BoardScreen({route, navigation}) {
         openTip();
     }, [board, rf]);
 
-    const MenuItems = useMemo(() => [
+    const [modalVisible, setModalVisible] = useState(false);
+
+    const MenuItems = [
         {
             text: 'Thread Actions', isTitle: true
         },
@@ -784,63 +810,103 @@ function BoardScreen({route, navigation}) {
                 });
             }
         },
-    ], []);
+        {
+            text: 'Report',
+            isDestructive: true,
+            icon: 'megaphone',
+            onPress: (board, thread, postId) => {
+                reportPost(board, thread, postId).then((res) => {
+                    setModalVisible(true)
+                }).catch((error) => {
+                    console.error(error)
+                });
+            }
+        },
+        {
+            text: 'Block Post and User',
+            isDestructive: true,
+            icon: 'skull-outline',
+            onPress: (board, thread, postId) => {
+                blockPost(board, thread, postId).then(async (res) => {
+                    getData(0, board);
+                    Toast.show('Post and User Blocked!', {
+                        duration: Toast.durations.SHORT,
+                        position: Toast.positions.BOTTOM,
+                        shadow: false,
+                        animation: true,
+                        hideOnPress: true,
+                        delay: 0,
+                    });
+                }).catch((error) => {
+                    console.error(error)
+                });
+            }
+        },
+    ];
 
     const keyExtractor = useCallback((item) => {
         return `threads_screen-${item.no}`;
     }, []);
 
     const renderItem = useCallback(({item}) => {
-        return <HoldItem
-            containerStyles={{
-                paddingBottom: 10
-            }}
-            items={MenuItems} closeOnTap actionParams={{
-            Reply: [board, item.no],
-            Copy: [board, item.no]
-        }}>
-            <TouchableOpacity
-                style={{backgroundColor: '#000'}}
-                onPress={() => navigation.navigate('Thread', {
-                    board: board,
-                    thread: item.no
-                })}
-            ><View style={styles.thread}>
-                <View style={styles.threadHead}>
-                    <Text style={styles.threadId}>#{item.no}</Text>
-                    <Text numberOfLines={1} style={styles.threadName}>{item.name}</Text>
-                    <Text numberOfLines={1} style={styles.threadSub}>{typeof item.sub !== 'undefined' ? item.sub.replace(/^(.{25}[^\s]*).*/, "$1") + (item.sub.length > 25 ? '...' : '') : ''}</Text>
-                    <View style={{flex: 1}}>
-                        <Text numberOfLines={1} style={{
-                            textAlign: 'right',
-                            color: '#787878',
-                            fontSize: normalize(12),
-                        }}>{moment.unix(item.last_modified).fromNow()}</Text>
+        return item.blocked === true ?
+            <Text style={{color: '#787878', padding: 20, paddingLeft: 10}}>#{item.no} BLOCKED by you!</Text> :
+            <HoldItem
+                containerStyles={{
+                    paddingBottom: 10
+                }}
+                items={MenuItems} closeOnTap actionParams={{
+                Reply: [board, item.no],
+                Copy: [board, item.no],
+                Report: [board, item.no, item.no],
+                'Block Post and User': [board, item.no, item.no]
+            }}>
+                <TouchableOpacity
+                    style={{backgroundColor: '#000'}}
+                    onPress={() => navigation.navigate('Thread', {
+                        board: board,
+                        thread: item.no
+                    })}
+                ><View style={styles.thread}>
+                    <View style={styles.threadHead}>
+                        <Text style={styles.threadId}>#{item.no}</Text>
+                        <Text numberOfLines={1} style={styles.threadName}>{item.name}</Text>
+                        <Text numberOfLines={1} style={styles.threadSub}>{typeof item.sub !== 'undefined' ? item.sub.replace(/^(.{25}[^\s]*).*/, "$1") + (item.sub.length > 25 ? '...' : '') : ''}</Text>
+                        <View style={{flex: 1}}>
+                            <Text numberOfLines={1} style={{
+                                textAlign: 'right',
+                                color: '#787878',
+                                fontSize: normalize(12),
+                            }}>{moment.unix(item.last_modified).fromNow()}</Text>
+                        </View>
+                    </View>
+                    {processFiles(board, item, false)}
+                    {processEmbed(item, false)}
+                    {'com_nomarkup' in item ? <View style={styles.threadComContainer}>
+                        <Text style={[styles.threadCom]}>{formatCom(item.com_nomarkup)}</Text>
+                    </View> : null}
+                    <View style={styles.threadBottom}>
+                        <Text style={styles.threadBottomText}>
+                            {item.replies} <Ionicons name={'chatbox'} size={14} />
+                        </Text>
+                        <Text style={styles.threadBottomText}><Ionicons name={'ellipsis-horizontal'} size={14} /></Text>
+                        <Text style={styles.threadBottomText}>
+                            {item.files_count} <Ionicons name={'images'} size={14} />
+                        </Text>
                     </View>
                 </View>
-                {processFiles(board, item, false)}
-                {processEmbed(item, false)}
-                {'com_nomarkup' in item ? <View style={styles.threadComContainer}>
-                    <Text style={[styles.threadCom]}>{formatCom(item.com_nomarkup)}</Text>
-                </View> : null}
-                <View style={styles.threadBottom}>
-                    <Text style={styles.threadBottomText}>{item.replies} <Ionicons name={'chatbox'} size={14} /></Text>
-                    <Text style={styles.threadBottomText}><Ionicons name={'ellipsis-horizontal'} size={14} /></Text>
-                    <Text style={styles.threadBottomText}>
-                        {item.files_count} <Ionicons name={'images'} size={14} />
-                    </Text>
-                </View>
-            </View>
-            </TouchableOpacity>
-        </HoldItem>
+                </TouchableOpacity>
+            </HoldItem>
     }, []);
 
     return (
         <SafeAreaView style={styles.container}>
             {errorModal ?
-                <LottieModal timeout={3000} title={"Error!"} bgColor={'rgba(130, 0, 0, 0)'} lottieSource={require('./assets/error.json')} hideModal={() => setErrorModal(false)} /> : null}
+                <LottieModal timeout={3000} title={"Error!"} bgColor={'rgba(56,0,0,0.5)'} lottieSource={require('./assets/error.json')} hideModal={() => setErrorModal(false)} /> : null}
             {tipVisible ?
-                <LottieModal timeout={3000} title={"Tip!"} message={"Long press on a list item opens the action menu for that item!"} bgColor={'rgba(0,46,58,0.78)'} hideModal={() => closeTip()} /> : null}
+                <LottieModal timeout={3000} title={"Tip!"} message={"Long press on a list item opens the action menu for that item!"} bgColor={'rgba(58,31,0,0.78)'} hideModal={() => closeTip()} /> : null}
+            {modalVisible ?
+                <LottieModal title={"Reported!"} bgColor={'rgba(120,202,112,0.45)'} message={"This post will be reported to our moderation team."} timeout={1000} lottieSource={require('./assets/done.json')} hideModal={() => setModalVisible(false)} /> : null}
             <FlashList
                 contentContainerStyle={{paddingBottom: 100}}
                 ItemSeparatorComponent={separator}
@@ -901,7 +967,7 @@ function ThreadScreen({route, navigation}) {
     const [postModalVisible, setPostModalVisible] = useState(false);
     const [indexMap, setIndexMap] = useState([]); //using for smth like scrollTo(<postId>) looks like shit
 
-    const getData = () => {
+    const getData = (board, thread) => {
         return new Promise((resolve, reject) => {
             getBoardThreadFromApi(board, thread).then((res) => {
                 let im = [];
@@ -950,39 +1016,48 @@ function ThreadScreen({route, navigation}) {
             });
         });
     };
-    useEffect(() => {
-        getData().then((im) => {
-            if (flatlistRef !== 'undefined') {
-                flatlistRef.current.recordInteraction();
-                flatlistRef.current.prepareForLayoutAnimationRender();
-            }
+
+    const upd = (board, thread) => {
+        getData(board, thread).then((im) => {
             if (rf !== undefined && rf !== null && rf !== 0) {
                 setPostModalVisible(true);
             }
-            setTimeout(() => {
-                if (rf !== undefined && rf !== null && rf !== 0 && typeof flatlistRef !== 'undefined') {
+            if (typeof flatlistRef !== 'undefined' && 'current' in flatlistRef && flatlistRef.current !== null) {
+                flatlistRef.current.recordInteraction();
+                flatlistRef.current.prepareForLayoutAnimationRender();
+                setTimeout(() => {
+                    if (rf !== undefined && rf !== null && rf !== 0) {
 
-                    flatlistRef.current.scrollToIndex({
-                        animated: false,
-                        index: im.indexOf(im[im.length - 1]),
-                    })
-                }
+                        flatlistRef.current.scrollToIndex({
+                            animated: false,
+                            index: im.indexOf(im[im.length - 1]),
+                        })
+                    }
 
-                if (down !== undefined && down !== null && down !== 0 && typeof flatlistRef !== 'undefined') {
-                    flatlistRef.current.scrollToIndex({
-                        animated: false,
-                        index: im.indexOf(down),
-                    })
-                }
+                    if (down !== undefined && down !== null && down !== 0) {
+                        flatlistRef.current.scrollToIndex({
+                            animated: false,
+                            index: im.indexOf(down),
+                        })
+                    }
 
-            }, 600)
+                }, 600);
+            }
         });
-    }, [board, thread, refreshing, rf, down]);
+    };
 
+    useEffect(() => {
+        upd(board, thread);
+    }, [board, thread, rf, down]);
+    useEffect(() => {
+        if (refreshing === true) {
+            getData(board, thread);
+        }
+    }, [refreshing]);
 
     const [modalVisible, setModalVisible] = useState(false);
 
-    const MenuItems = useMemo(() => [
+    const MenuItems = [
         {
             text: 'Post Actions', icon: 'copy-outline', isTitle: true, onPress: (postId) => {
             }
@@ -1011,7 +1086,10 @@ function ThreadScreen({route, navigation}) {
             }
         },
         {
-            text: 'Report', isDestructive: true, icon: 'warning-outline', onPress: (board, thread, postId) => {
+            text: 'Report',
+            isDestructive: true,
+            icon: 'megaphone',
+            onPress: (board, thread, postId) => {
                 reportPost(board, thread, postId).then((res) => {
                     setModalVisible(true)
                 }).catch((error) => {
@@ -1019,50 +1097,72 @@ function ThreadScreen({route, navigation}) {
                 });
             }
         },
-    ], []);
+        {
+            text: 'Block Post and User',
+            isDestructive: true,
+            icon: 'skull-outline',
+            onPress: (board, thread, postId) => {
+                blockPost(board, thread, postId).then(async (res) => {
+                    navigation.goBack();
+                    Toast.show('Post and User Blocked!', {
+                        duration: Toast.durations.SHORT,
+                        position: Toast.positions.BOTTOM,
+                        shadow: false,
+                        animation: true,
+                        hideOnPress: true,
+                        delay: 0,
+                    });
+                }).catch((error) => {
+                    console.error(error)
+                });
+            }
+        },
+    ];
 
-    const keyExtractor = (item) => `post-${item.no}`;
+    const keyExtractor = (item) => `post-${board}-${thread}-${item.no}`;
 
     const renderItem = ({item, index}) => {
-        return <HoldItem
-            containerStyles={{
-                paddingBottom: 5,
-                backgroundColor: '#000000'
-            }}
-            items={MenuItems} closeOnTap actionParams={{
-            Reply: [board, thread, item.no],
-            Copy: [board, thread, item.no],
-            Report: [board, thread, item.no],
-        }}>
-            <View style={{backgroundColor: '#000'}}>
-                <View style={[styles.thread, {
-                    borderWidth: indexMap.indexOf(down) === index ? 1 : 0
-                }]}>
-                    <View style={styles.threadHead}>
-                        <Text style={styles.threadId}>#{item.no}</Text>
-                        <Text numberOfLines={1} style={styles.threadName}>{item.name}</Text>
-                        <Text numberOfLines={1} style={styles.threadSub}>{typeof item.sub !== 'undefined' ? item.sub.replace(/^(.{25}[^\s]*).*/, "$1") + (item.sub.length > 25 ? '...' : '') : ''}</Text>
-                        <View style={{flex: 1}}>
-                            <Text numberOfLines={1} style={{
-                                textAlign: 'right',
-                                color: '#787878',
-                                fontSize: normalize(12),
-                            }}>{moment.unix(item.last_modified).fromNow()}</Text>
+        return item.blocked === true ?
+            <Text style={{color: '#787878', padding: 20, paddingLeft: 10}}>#{item.no} BLOCKED by you!</Text> : <HoldItem
+                containerStyles={{
+                    paddingBottom: 5,
+                    backgroundColor: '#000000'
+                }}
+                items={MenuItems} closeOnTap actionParams={{
+                Reply: [board, thread, item.no],
+                Copy: [board, thread, item.no],
+                'Block Post and User': [board, thread, item.no],
+                Report: [board, thread, item.no],
+            }}>
+                <View style={{backgroundColor: '#000'}}>
+                    <View style={[styles.thread, {
+                        borderWidth: indexMap.indexOf(down) === index ? 1 : 0
+                    }]}>
+                        <View style={styles.threadHead}>
+                            <Text style={styles.threadId}>#{item.no}</Text>
+                            <Text numberOfLines={1} style={styles.threadName}>{item.name}</Text>
+                            <Text numberOfLines={1} style={styles.threadSub}>{typeof item.sub !== 'undefined' ? item.sub.replace(/^(.{25}[^\s]*).*/, "$1") + (item.sub.length > 25 ? '...' : '') : ''}</Text>
+                            <View style={{flex: 1}}>
+                                <Text numberOfLines={1} style={{
+                                    textAlign: 'right',
+                                    color: '#787878',
+                                    fontSize: normalize(12),
+                                }}>{moment.unix(item.last_modified).fromNow()}</Text>
+                            </View>
                         </View>
-                    </View>
-                    {processFiles(board, item, true, onSelect)}
-                    {processEmbed(item, true)}
-                    {'com_nomarkup' in item ? processCom(item.com_nomarkup, flatlistRef, indexMap) : null}
-                </View></View>
-        </HoldItem>
+                        {processFiles(board, item, true, onSelect)}
+                        {processEmbed(item, true)}
+                        {'com_nomarkup' in item ? processCom(item.com_nomarkup, flatlistRef, indexMap) : null}
+                    </View></View>
+            </HoldItem>
     };
 
     return (
         <View style={styles.container}>
             {postModalVisible ?
-                <LottieModal timeout={0} size={400} bgColor={'rgba(0, 0, 0, 0)'} lottieSource={require('./assets/confetti.json')} hideModal={() => setPostModalVisible(false)} /> : null}
+                <LottieModal dismissText={''} timeout={0} size={400} bgColor={'rgba(0, 0, 0, 0)'} lottieSource={require('./assets/confetti.json')} hideModal={() => setPostModalVisible(false)} /> : null}
             {modalVisible ?
-                <LottieModal title={"Reported!"} message={"This post will be reported to our moderation team."} timeout={1000} lottieSource={require('./assets/done.json')} hideModal={() => setModalVisible(false)} /> : null}
+                <LottieModal title={"Reported!"} bgColor={'rgba(120,202,112,0.45)'} message={"This post will be reported to our moderation team."} timeout={1000} lottieSource={require('./assets/done.json')} hideModal={() => setModalVisible(false)} /> : null}
             <ImageView
                 images={images}
                 imageIndex={currentImageIndex}
@@ -1074,18 +1174,19 @@ function ThreadScreen({route, navigation}) {
             <FlashList
                 ref={flatlistRef}
                 data={apiResponse}
+                extraData={apiResponse}
                 estimatedItemSize={40}
                 contentContainerStyle={{paddingBottom: 20}}
                 ItemSeparatorComponent={separator}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={getData} />
+                    <RefreshControl refreshing={refreshing} onRefresh={() => setRefreshing(true)} />
                 }
                 keyExtractor={keyExtractor}
                 ListFooterComponent={
                     <View>
                         <TouchableHighlight onPress={() => {
                             setRefreshing(true);
-                            getData();
+                            getData(board, thread);
                         }}>
                             <View style={styles.footerContainer}>
                                 <Text style={styles.footerText}>{i18n.t('End')}</Text>
@@ -1423,7 +1524,7 @@ const NEW_HASHTAG_FORMATTER = (string, listRef, indexMap) => {
     let NewString = reactStringReplace(string, /(>>[0-9]{1,999999999999999})\s/gi, (match, i) => {
         const postId = parseInt(match.replace(' ', '').replace('>>', ''));
         return <TouchableOpacity
-            onPress={() => indexMap.indexOf(postId) > -1 && typeof listRef !== 'undefined' ? listRef.current.scrollToIndex({
+            onPress={() => indexMap !== null && indexMap.indexOf(postId) > -1 && typeof listRef !== 'undefined' && listRef !== null ? listRef.current.scrollToIndex({
                 animated: true,
                 index: indexMap.indexOf(postId),
                 viewOffset: 20,

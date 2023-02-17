@@ -38,7 +38,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "versionCode": 30,
+      "versionCode": 33,
       "package": "com.assada.deadach",
       "blockedPermissions": [
         "CAMERA",
