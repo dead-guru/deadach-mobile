@@ -134,7 +134,7 @@ export default function App() {
                         <Text style={styles.modalText}>{i18n.t('AgreeToTerms')}</Text>
                         <Pressable onPress={() => {
                             Linking.openURL(HOST + '/rules.html'); //TODO: move to config
-                        }}><Text style={styles.modalLinks}></Text></Pressable>
+                        }}><Text style={styles.modalLinks}>{i18n.t('ViewTerms')}</Text></Pressable>
                         <Pressable
                             style={[styles.button, styles.buttonClose]}
                             onPress={() => {
@@ -1293,8 +1293,9 @@ const detectDailyMotion = (embed) => {
 
 const processEmbed = (item, clickable) => {
     if ('embed' in item && item.embed !== null) {
-        const yt = detectYoutube(item.embed) === false ? getYoutubeId(item.embed) : detectYoutube(item.embed);
 
+        const yt = detectYoutube(item.embed) === false ? getYoutubeId(item.embed) : detectYoutube(item.embed);
+        console.log(item.id, yt)
         if (yt) {
             let image = <Image
                 key={"yt_" + yt}
@@ -1491,7 +1492,7 @@ const handleLinkPress = async (url) => {
 };
 
 const getYoutubeId = (url) => {
-    if (url.substring(0, 24) === 'https://youtu.be/') {
+    if (url.substring(0, 17) === 'https://youtu.be/') {
         return url.substring(17, 28);
     } else if (url.substring(0, 32) === 'https://www.youtube.com/watch?v=') {
         return url.substring(32, 43);

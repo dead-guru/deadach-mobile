@@ -30,7 +30,7 @@
       "userInterfaceStyle": "dark",
       "supportsTablet": true,
       "bundleIdentifier": "com.assada.deadach",
-      "buildNumber": "6"
+      "buildNumber": "7"
     },
     "android": {
       "userInterfaceStyle": "dark",
@@ -38,7 +38,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "versionCode": 33,
+      "versionCode": 35,
       "package": "com.assada.deadach",
       "blockedPermissions": [
         "CAMERA",
